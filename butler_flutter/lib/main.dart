@@ -1,10 +1,11 @@
 import 'package:butler_client/butler_client.dart';
 import 'package:flutter/material.dart';
-import 'package:serverpod_flutter/serverpod_flutter.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
+import 'package:serverpod_flutter/serverpod_flutter.dart';
 
 import 'config/app_config.dart';
-import 'screens/greetings_screen.dart';
+
 
 /// Sets up a global client object that can be used to talk to the server from
 /// anywhere in our app. The client is generated from your server code
@@ -51,9 +52,24 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Serverpod Demo',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const MyHomePage(title: 'Serverpod Example'),
+      title: 'Butler AI',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6750A4),
+          brightness: Brightness.light,
+        ),
+      ),
+      darkTheme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFD0BCFF),
+          brightness: Brightness.dark,
+        ),
+      ),
+      themeMode: ThemeMode.system,
+      home: const MyHomePage(title: 'Butler AI'),
     );
   }
 }
@@ -67,45 +83,66 @@ class MyHomePage extends StatefulWidget {
   MyHomePageState createState() => MyHomePageState();
 }
 
+class ChatMessage {
+  final String text;
+  final bool isUser;
+  final bool isError;
+
+  ChatMessage({
+    required this.text,
+    required this.isUser,
+    this.isError = false,
+  });
+}
+
 class MyHomePageState extends State<MyHomePage> {
-  /// Holds the last result or null if no result exists yet.
-  String? _resultMessage;
-
-  /// Holds the last error message that we've received from the server or null
-  /// if no error exists yet.
-  String? _errorMessage;
-
+  final List<ChatMessage> _messages = [];
   final _textEditingController = TextEditingController();
-
+  final ScrollController _scrollController = ScrollController();
   bool _loading = false;
 
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   void _callGenerateRecipe() async {
+    final text = _textEditingController.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() {
+      _messages.add(ChatMessage(text: text, isUser: true));
+      _loading = true;
+      _textEditingController.clear();
+    });
+    _scrollToBottom();
+
     try {
-      // Reset the state.
-      setState(() {
-        _errorMessage = null;
-        _resultMessage = null;
-        _loading = true;
-      });
-
       // Call our `generateRecipe` method on the server.
-      final result = await client.test.generateRecipe(
-        _textEditingController.text,
-      );
+      final result = await client.test.generateRecipe(text);
 
-      // Update the state with the recipe we got from the server.
-      setState(() {
-        _errorMessage = null;
-        _resultMessage = result;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _messages.add(ChatMessage(text: result, isUser: false));
+          _loading = false;
+        });
+        _scrollToBottom();
+      }
     } catch (e) {
-      // If something goes wrong, set an error message.
-      setState(() {
-        _errorMessage = '$e';
-        _resultMessage = null;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _messages.add(ChatMessage(text: '$e', isUser: false, isError: true));
+          _loading = false;
+        });
+        _scrollToBottom();
+      }
     }
   }
 
@@ -113,37 +150,194 @@ class MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: TextField(
-                controller: _textEditingController,
-                decoration: const InputDecoration(
-                  hintText: 'Enter your ingredients',
+            Icon(Icons.restaurant_menu, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(widget.title),
+          ],
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: _messages.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.auto_awesome,
+                          size: 64,
+                          color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'What would you like to cook today?',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                    itemCount: _messages.length + (_loading ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _messages.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      final message = _messages[index];
+                      return _buildMessageBubble(message);
+                    },
+                  ),
+          ),
+          _buildInputArea(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageBubble(ChatMessage message) {
+    final isUser = message.isUser;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textColor = message.isError
+        ? colorScheme.onErrorContainer
+        : isUser
+            ? colorScheme.onPrimaryContainer
+            : colorScheme.onSecondaryContainer;
+
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        decoration: BoxDecoration(
+          color: message.isError
+              ? colorScheme.errorContainer
+              : isUser
+                  ? colorScheme.primaryContainer
+                  : colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(20),
+            topRight: const Radius.circular(20),
+            bottomLeft: isUser ? const Radius.circular(20) : const Radius.circular(4),
+            bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(20),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!isUser) ...[
+              Text(
+                'Butler',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: message.isError
+                      ? colorScheme.onErrorContainer
+                      : colorScheme.onSecondaryContainer.withOpacity(0.7),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
-              child: ElevatedButton(
-                onPressed: _loading ? null : _callGenerateRecipe,
-                child: _loading
-                    ? const Text('Loading...')
-                    : const Text('Generate Recipe'),
+              const SizedBox(height: 4),
+            ],
+            MarkdownBody(
+              data: message.text,
+              styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                p: TextStyle(color: textColor, fontSize: 15),
+                h1: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                h2: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                h3: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                h4: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                h5: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                h6: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                em: TextStyle(color: textColor, fontStyle: FontStyle.italic),
+                strong: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                blockquote: TextStyle(color: textColor.withOpacity(0.8)),
+                code: TextStyle(
+                  color: textColor,
+                  backgroundColor: isUser ? Colors.black12 : Colors.white12,
+                ),
+                codeblockDecoration: BoxDecoration(
+                  color: isUser ? Colors.black12 : Colors.white12,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                listBullet: TextStyle(color: textColor),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputArea() {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            offset: const Offset(0, -2),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
             Expanded(
-              child: SingleChildScrollView(
-                child: ResultDisplay(
-                  resultMessage: _resultMessage,
-                  errorMessage: _errorMessage,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: colorScheme.outline.withOpacity(0.2)),
+                ),
+                child: TextField(
+                  controller: _textEditingController,
+                  textCapitalization: TextCapitalization.sentences,
+                  minLines: 1,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter ingredients...',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  ),
                 ),
               ),
+            ),
+            const SizedBox(width: 12),
+            FloatingActionButton(
+              onPressed: _loading ? null : _callGenerateRecipe,
+              elevation: 0,
+              backgroundColor: _loading ? colorScheme.surfaceContainerHighest : colorScheme.primary,
+              foregroundColor: _loading ? colorScheme.onSurfaceVariant : colorScheme.onPrimary,
+              child: _loading
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.arrow_upward_rounded),
             ),
           ],
         ),
