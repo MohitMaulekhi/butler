@@ -5,7 +5,7 @@ import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
 
 import 'config/app_config.dart';
-
+import 'router/router.dart';
 
 /// Sets up a global client object that can be used to talk to the server from
 /// anywhere in our app. The client is generated from your server code
@@ -51,7 +51,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
+      routerConfig: router,
       title: 'Butler AI',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -69,7 +70,6 @@ class MyApp extends StatelessWidget {
         ),
       ),
       themeMode: ThemeMode.system,
-      home: const MyHomePage(title: 'Butler AI'),
     );
   }
 }
@@ -153,7 +153,10 @@ class MyHomePageState extends State<MyHomePage> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.restaurant_menu, color: Theme.of(context).colorScheme.primary),
+            Icon(
+              Icons.restaurant_menu,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             const SizedBox(width: 8),
             Text(widget.title),
           ],
@@ -161,6 +164,14 @@ class MyHomePageState extends State<MyHomePage> {
         centerTitle: true,
         elevation: 0,
         backgroundColor: Theme.of(context).colorScheme.surface,
+        actions: [
+          IconButton(
+            onPressed: () {
+              client.auth.signOutDevice();
+            },
+            icon: const Icon(Icons.logout),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -173,13 +184,18 @@ class MyHomePageState extends State<MyHomePage> {
                         Icon(
                           Icons.auto_awesome,
                           size: 64,
-                          color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.5),
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'What would you like to cook today?',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                         ),
                       ],
@@ -187,7 +203,10 @@ class MyHomePageState extends State<MyHomePage> {
                   )
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 20,
+                    ),
                     itemCount: _messages.length + (_loading ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index == _messages.length) {
@@ -213,26 +232,32 @@ class MyHomePageState extends State<MyHomePage> {
     final textColor = message.isError
         ? colorScheme.onErrorContainer
         : isUser
-            ? colorScheme.onPrimaryContainer
-            : colorScheme.onSecondaryContainer;
+        ? colorScheme.onPrimaryContainer
+        : colorScheme.onSecondaryContainer;
 
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6.0),
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
           color: message.isError
               ? colorScheme.errorContainer
               : isUser
-                  ? colorScheme.primaryContainer
-                  : colorScheme.secondaryContainer,
+              ? colorScheme.primaryContainer
+              : colorScheme.secondaryContainer,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(20),
             topRight: const Radius.circular(20),
-            bottomLeft: isUser ? const Radius.circular(20) : const Radius.circular(4),
-            bottomRight: isUser ? const Radius.circular(4) : const Radius.circular(20),
+            bottomLeft: isUser
+                ? const Radius.circular(20)
+                : const Radius.circular(4),
+            bottomRight: isUser
+                ? const Radius.circular(4)
+                : const Radius.circular(20),
           ),
           boxShadow: [
             BoxShadow(
@@ -260,27 +285,54 @@ class MyHomePageState extends State<MyHomePage> {
             ],
             MarkdownBody(
               data: message.text,
-              styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                p: TextStyle(color: textColor, fontSize: 15),
-                h1: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                h2: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                h3: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                h4: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                h5: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                h6: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                em: TextStyle(color: textColor, fontStyle: FontStyle.italic),
-                strong: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-                blockquote: TextStyle(color: textColor.withOpacity(0.8)),
-                code: TextStyle(
-                  color: textColor,
-                  backgroundColor: isUser ? Colors.black12 : Colors.white12,
-                ),
-                codeblockDecoration: BoxDecoration(
-                  color: isUser ? Colors.black12 : Colors.white12,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                listBullet: TextStyle(color: textColor),
-              ),
+              styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
+                  .copyWith(
+                    p: TextStyle(color: textColor, fontSize: 15),
+                    h1: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    h2: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    h3: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    h4: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    h5: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    h6: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    em: TextStyle(
+                      color: textColor,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    strong: TextStyle(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    blockquote: TextStyle(
+                      color: textColor.withValues(alpha: 0.8),
+                    ),
+                    code: TextStyle(
+                      color: textColor,
+                      backgroundColor: isUser ? Colors.black12 : Colors.white12,
+                    ),
+                    codeblockDecoration: BoxDecoration(
+                      color: isUser ? Colors.black12 : Colors.white12,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    listBullet: TextStyle(color: textColor),
+                  ),
             ),
           ],
         ),
@@ -310,7 +362,9 @@ class MyHomePageState extends State<MyHomePage> {
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHighest.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: colorScheme.outline.withOpacity(0.2)),
+                  border: Border.all(
+                    color: colorScheme.outline.withOpacity(0.2),
+                  ),
                 ),
                 child: TextField(
                   controller: _textEditingController,
@@ -320,7 +374,10 @@ class MyHomePageState extends State<MyHomePage> {
                   decoration: const InputDecoration(
                     hintText: 'Enter ingredients...',
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
                   ),
                 ),
               ),
@@ -329,8 +386,12 @@ class MyHomePageState extends State<MyHomePage> {
             FloatingActionButton(
               onPressed: _loading ? null : _callGenerateRecipe,
               elevation: 0,
-              backgroundColor: _loading ? colorScheme.surfaceContainerHighest : colorScheme.primary,
-              foregroundColor: _loading ? colorScheme.onSurfaceVariant : colorScheme.onPrimary,
+              backgroundColor: _loading
+                  ? colorScheme.surfaceContainerHighest
+                  : colorScheme.primary,
+              foregroundColor: _loading
+                  ? colorScheme.onSurfaceVariant
+                  : colorScheme.onPrimary,
               child: _loading
                   ? const SizedBox(
                       width: 24,

@@ -7,6 +7,11 @@ import 'package:serverpod/serverpod.dart';
 class TestEndpoint extends Endpoint {
   /// Pass in a string containing the ingredients and get a recipe back.
   Future<String> generateRecipe(Session session, String ingredients) async {
+    // Check if the user is signed in.
+    if (!session.isUserSignedIn) {
+      throw Exception('User is not signed in');
+    }
+
     // Serverpod automatically loads your passwords.yaml file and makes the
     // passwords available in the session.passwords map.
     final geminiApiKey = session.passwords['geminiApiKey'];

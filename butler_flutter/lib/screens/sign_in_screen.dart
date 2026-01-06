@@ -3,45 +3,46 @@ import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 import '../main.dart';
 
-class SignInScreen extends StatefulWidget {
-  final Widget child;
-  const SignInScreen({super.key, required this.child});
-
-  @override
-  State<SignInScreen> createState() => _SignInScreenState();
-}
-
-class _SignInScreenState extends State<SignInScreen> {
-  bool _isSignedIn = false;
-
-  @override
-  void initState() {
-    super.initState();
-    client.auth.authInfoListenable.addListener(_updateSignedInState);
-    _isSignedIn = client.auth.isAuthenticated;
-  }
-
-  @override
-  void dispose() {
-    client.auth.authInfoListenable.removeListener(_updateSignedInState);
-    super.dispose();
-  }
-
-  void _updateSignedInState() {
-    setState(() {
-      _isSignedIn = client.auth.isAuthenticated;
-    });
-  }
+class SignInScreen extends StatelessWidget {
+  const SignInScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return _isSignedIn
-        ? widget.child
-        : Center(
-            child: SignInWidget(
-              client: client,
-              onAuthenticated: () {},
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Butler AI'),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.lock_outline,
+                  size: 64,
+                  color: Colors.deepPurple,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Welcome Back',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 32),
+                SignInWidget(
+                  client: client,
+                  onAuthenticated: () {
+                    // Router listener will handle redirect
+                  },
+                ),
+              ],
             ),
-          );
+          ),
+        ),
+      ),
+    );
   }
 }
