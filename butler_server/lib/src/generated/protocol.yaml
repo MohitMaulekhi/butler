@@ -9,6 +9,6 @@ emailIdp:
 jwtRefresh:
   - refreshAccessToken:
 test:
-  - generateRecipe:
+  - chat:
 greeting:
   - hello:

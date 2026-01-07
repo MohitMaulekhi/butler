@@ -233,9 +233,9 @@ class EndpointJwtRefresh extends _i4.EndpointRefreshJwtTokens {
   );
 }
 
-/// This is the endpoint that will be used to generate a recipe using the
+/// This is the endpoint that provides personal assistant functionality using the
 /// Google Gemini API. It extends the Endpoint class and implements the
-/// generateRecipe method.
+/// chat method.
 /// {@category Endpoint}
 class EndpointTest extends _i2.EndpointRef {
   EndpointTest(_i2.EndpointCaller caller) : super(caller);
@@ -243,13 +243,12 @@ class EndpointTest extends _i2.EndpointRef {
   @override
   String get name => 'test';
 
-  /// Pass in a string containing the ingredients and get a recipe back.
-  _i3.Future<String> generateRecipe(String ingredients) =>
-      caller.callServerEndpoint<String>(
-        'test',
-        'generateRecipe',
-        {'ingredients': ingredients},
-      );
+  /// Pass in a message and get a personal assistant response back.
+  _i3.Future<String> chat(String message) => caller.callServerEndpoint<String>(
+    'test',
+    'chat',
+    {'message': message},
+  );
 }
 
 /// This is an example endpoint that returns a greeting message through

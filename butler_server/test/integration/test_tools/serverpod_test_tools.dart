@@ -460,22 +460,22 @@ class _TestEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<String> generateRecipe(
+  _i3.Future<String> chat(
     _i1.TestSessionBuilder sessionBuilder,
-    String ingredients,
+    String message,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
             endpoint: 'test',
-            method: 'generateRecipe',
+            method: 'chat',
           );
       try {
         var _localCallContext = await _endpointDispatch.getMethodCallContext(
           createSessionCallback: (_) => _localUniqueSession,
           endpointPath: 'test',
-          methodName: 'generateRecipe',
-          parameters: _i1.testObjectToJson({'ingredients': ingredients}),
+          methodName: 'chat',
+          parameters: _i1.testObjectToJson({'message': message}),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =

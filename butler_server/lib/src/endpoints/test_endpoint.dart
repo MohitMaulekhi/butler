@@ -1,12 +1,12 @@
 import 'package:dartantic_ai/dartantic_ai.dart';
 import 'package:serverpod/serverpod.dart';
 
-/// This is the endpoint that will be used to generate a recipe using the
+/// This is the endpoint that provides personal assistant functionality using the
 /// Google Gemini API. It extends the Endpoint class and implements the
-/// generateRecipe method.
+/// chat method.
 class TestEndpoint extends Endpoint {
-  /// Pass in a string containing the ingredients and get a recipe back.
-  Future<String> generateRecipe(Session session, String ingredients) async {
+  /// Pass in a message and get a personal assistant response back.
+  Future<String> chat(Session session, String message) async {
     // Check if the user is signed in.
     if (!session.isUserSignedIn) {
       throw Exception('User is not signed in');
@@ -25,13 +25,15 @@ class TestEndpoint extends Endpoint {
       chatModelName: 'gemini-2.5-flash-lite',
     );
 
-    // A prompt to generate a recipe, the user will provide a free text input
-    // with the ingredients.
-    final prompt =
-        'Generate a recipe using the following ingredients: $ingredients. '
-        'Always put the title of the recipe in the first line, followed by the '
-        'instructions. The recipe should be easy to follow and include all '
-        'necessary steps.';
+    // System prompt for the personal assistant
+    final systemPrompt =
+        'You are Butler, a helpful and friendly personal assistant. '
+        'You help users with various tasks including answering questions, '
+        'providing information, making suggestions, and assisting with daily activities. '
+        'Be concise, helpful, and conversational in your responses. '
+        'Always maintain a professional yet warm tone.';
+
+    final prompt = '$systemPrompt\n\nUser: $message';
 
     final response = await agent.send(prompt);
 

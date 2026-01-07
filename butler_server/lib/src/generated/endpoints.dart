@@ -247,11 +247,11 @@ class Endpoints extends _i1.EndpointDispatch {
       name: 'test',
       endpoint: endpoints['test']!,
       methodConnectors: {
-        'generateRecipe': _i1.MethodConnector(
-          name: 'generateRecipe',
+        'chat': _i1.MethodConnector(
+          name: 'chat',
           params: {
-            'ingredients': _i1.ParameterDescription(
-              name: 'ingredients',
+            'message': _i1.ParameterDescription(
+              name: 'message',
               type: _i1.getType<String>(),
               nullable: false,
             ),
@@ -260,9 +260,9 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['test'] as _i4.TestEndpoint).generateRecipe(
+              ) async => (endpoints['test'] as _i4.TestEndpoint).chat(
                 session,
-                params['ingredients'],
+                params['message'],
               ),
         ),
       },

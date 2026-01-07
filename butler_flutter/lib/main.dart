@@ -113,7 +113,7 @@ class MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _callGenerateRecipe() async {
+  void _sendMessage() async {
     final text = _textEditingController.text.trim();
     if (text.isEmpty) return;
 
@@ -125,8 +125,8 @@ class MyHomePageState extends State<MyHomePage> {
     _scrollToBottom();
 
     try {
-      // Call our `generateRecipe` method on the server.
-      final result = await client.test.generateRecipe(text);
+      // Call our `chat` method on the server.
+      final result = await client.test.chat(text);
 
       if (mounted) {
         setState(() {
@@ -154,7 +154,7 @@ class MyHomePageState extends State<MyHomePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.restaurant_menu,
+              Icons.assistant,
               color: Theme.of(context).colorScheme.primary,
             ),
             const SizedBox(width: 8),
@@ -190,7 +190,7 @@ class MyHomePageState extends State<MyHomePage> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'What would you like to cook today?',
+                          'How can I assist you today?',
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(
                                 color: Theme.of(
@@ -372,7 +372,7 @@ class MyHomePageState extends State<MyHomePage> {
                   minLines: 1,
                   maxLines: 5,
                   decoration: const InputDecoration(
-                    hintText: 'Enter ingredients...',
+                    hintText: 'Ask me anything...',
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 20,
@@ -384,7 +384,7 @@ class MyHomePageState extends State<MyHomePage> {
             ),
             const SizedBox(width: 12),
             FloatingActionButton(
-              onPressed: _loading ? null : _callGenerateRecipe,
+              onPressed: _loading ? null : _sendMessage,
               elevation: 0,
               backgroundColor: _loading
                   ? colorScheme.surfaceContainerHighest
