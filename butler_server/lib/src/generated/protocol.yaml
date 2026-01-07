@@ -8,7 +8,7 @@ emailIdp:
   - finishPasswordReset:
 jwtRefresh:
   - refreshAccessToken:
-test:
+chat:
   - chat:
 greeting:
   - hello:

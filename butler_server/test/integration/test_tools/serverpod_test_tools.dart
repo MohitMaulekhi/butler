@@ -129,7 +129,7 @@ class TestEndpoints {
 
   late final _JwtRefreshEndpoint jwtRefresh;
 
-  late final _TestEndpoint test;
+  late final _ChatEndpoint chat;
 
   late final _GreetingEndpoint greeting;
 }
@@ -149,7 +149,7 @@ class _InternalTestEndpoints extends TestEndpoints
       endpoints,
       serializationManager,
     );
-    test = _TestEndpoint(
+    chat = _ChatEndpoint(
       endpoints,
       serializationManager,
     );
@@ -450,8 +450,8 @@ class _JwtRefreshEndpoint {
   }
 }
 
-class _TestEndpoint {
-  _TestEndpoint(
+class _ChatEndpoint {
+  _ChatEndpoint(
     this._endpointDispatch,
     this._serializationManager,
   );
@@ -462,20 +462,30 @@ class _TestEndpoint {
 
   _i3.Future<String> chat(
     _i1.TestSessionBuilder sessionBuilder,
-    String message,
-  ) async {
+    String message, {
+    String? githubToken,
+    String? amadeusKey,
+    String? weatherKey,
+    required bool enableIntegrations,
+  }) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
           (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
-            endpoint: 'test',
+            endpoint: 'chat',
             method: 'chat',
           );
       try {
         var _localCallContext = await _endpointDispatch.getMethodCallContext(
           createSessionCallback: (_) => _localUniqueSession,
-          endpointPath: 'test',
+          endpointPath: 'chat',
           methodName: 'chat',
-          parameters: _i1.testObjectToJson({'message': message}),
+          parameters: _i1.testObjectToJson({
+            'message': message,
+            'githubToken': githubToken,
+            'amadeusKey': amadeusKey,
+            'weatherKey': weatherKey,
+            'enableIntegrations': enableIntegrations,
+          }),
           serializationManager: _serializationManager,
         );
         var _localReturnValue =

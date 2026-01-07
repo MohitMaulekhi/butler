@@ -234,20 +234,31 @@ class EndpointJwtRefresh extends _i4.EndpointRefreshJwtTokens {
 }
 
 /// This is the endpoint that provides personal assistant functionality using the
-/// Google Gemini API. It extends the Endpoint class and implements the
-/// chat method.
+/// Google Gemini API with optional service integrations.
 /// {@category Endpoint}
-class EndpointTest extends _i2.EndpointRef {
-  EndpointTest(_i2.EndpointCaller caller) : super(caller);
+class EndpointChat extends _i2.EndpointRef {
+  EndpointChat(_i2.EndpointCaller caller) : super(caller);
 
   @override
-  String get name => 'test';
+  String get name => 'chat';
 
-  /// Pass in a message and get a personal assistant response back.
-  _i3.Future<String> chat(String message) => caller.callServerEndpoint<String>(
-    'test',
+  /// Chat with optional service integrations (GitHub, Travel, etc.).
+  _i3.Future<String> chat(
+    String message, {
+    String? githubToken,
+    String? amadeusKey,
+    String? weatherKey,
+    required bool enableIntegrations,
+  }) => caller.callServerEndpoint<String>(
     'chat',
-    {'message': message},
+    'chat',
+    {
+      'message': message,
+      'githubToken': githubToken,
+      'amadeusKey': amadeusKey,
+      'weatherKey': weatherKey,
+      'enableIntegrations': enableIntegrations,
+    },
   );
 }
 
@@ -311,7 +322,7 @@ class Client extends _i2.ServerpodClientShared {
        ) {
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
-    test = EndpointTest(this);
+    chat = EndpointChat(this);
     greeting = EndpointGreeting(this);
     modules = Modules(this);
   }
@@ -320,7 +331,7 @@ class Client extends _i2.ServerpodClientShared {
 
   late final EndpointJwtRefresh jwtRefresh;
 
-  late final EndpointTest test;
+  late final EndpointChat chat;
 
   late final EndpointGreeting greeting;
 
@@ -330,7 +341,7 @@ class Client extends _i2.ServerpodClientShared {
   Map<String, _i2.EndpointRef> get endpointRefLookup => {
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
-    'test': test,
+    'chat': chat,
     'greeting': greeting,
   };
 

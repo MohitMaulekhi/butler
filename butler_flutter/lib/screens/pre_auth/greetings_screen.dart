@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../main.dart';
+import '../../main.dart';
 
 class GreetingsScreen extends StatefulWidget {
   final Future<void> Function()? onSignOut;

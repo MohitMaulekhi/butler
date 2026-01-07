@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
-import '../main.dart';
+import '../../main.dart';
 
 class SignInScreen extends StatelessWidget {
   const SignInScreen({super.key});

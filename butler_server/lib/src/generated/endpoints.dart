@@ -13,7 +13,7 @@
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../auth/email_idp_endpoint.dart' as _i2;
 import '../auth/jwt_refresh_endpoint.dart' as _i3;
-import '../endpoints/test_endpoint.dart' as _i4;
+import '../endpoints/chat_endpoint.dart' as _i4;
 import '../greetings/greeting_endpoint.dart' as _i5;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _i6;
@@ -36,10 +36,10 @@ class Endpoints extends _i1.EndpointDispatch {
           'jwtRefresh',
           null,
         ),
-      'test': _i4.TestEndpoint()
+      'chat': _i4.ChatEndpoint()
         ..initialize(
           server,
-          'test',
+          'chat',
           null,
         ),
       'greeting': _i5.GreetingEndpoint()
@@ -243,9 +243,9 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
-    connectors['test'] = _i1.EndpointConnector(
-      name: 'test',
-      endpoint: endpoints['test']!,
+    connectors['chat'] = _i1.EndpointConnector(
+      name: 'chat',
+      endpoint: endpoints['chat']!,
       methodConnectors: {
         'chat': _i1.MethodConnector(
           name: 'chat',
@@ -255,14 +255,38 @@ class Endpoints extends _i1.EndpointDispatch {
               type: _i1.getType<String>(),
               nullable: false,
             ),
+            'githubToken': _i1.ParameterDescription(
+              name: 'githubToken',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'amadeusKey': _i1.ParameterDescription(
+              name: 'amadeusKey',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'weatherKey': _i1.ParameterDescription(
+              name: 'weatherKey',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'enableIntegrations': _i1.ParameterDescription(
+              name: 'enableIntegrations',
+              type: _i1.getType<bool>(),
+              nullable: false,
+            ),
           },
           call:
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['test'] as _i4.TestEndpoint).chat(
+              ) async => (endpoints['chat'] as _i4.ChatEndpoint).chat(
                 session,
                 params['message'],
+                githubToken: params['githubToken'],
+                amadeusKey: params['amadeusKey'],
+                weatherKey: params['weatherKey'],
+                enableIntegrations: params['enableIntegrations'],
               ),
         ),
       },

@@ -1,7 +1,8 @@
+import 'package:butler_flutter/screens/home_page.dart';
 import 'package:go_router/go_router.dart';
-import 'package:butler_flutter/main.dart'; // To access `client`
+import 'package:butler_flutter/main.dart';
 import 'package:butler_flutter/router/routes.dart';
-import 'package:butler_flutter/screens/sign_in_screen.dart';
+import 'package:butler_flutter/screens/pre_auth/sign_in_screen.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart'; // For auth
 
 final router = GoRouter(
@@ -10,12 +11,12 @@ final router = GoRouter(
   routes: [
     GoRoute(
       path: Routes.rootRoute,
-      builder: (context, state) => const MyHomePage(title: 'Butler AI'),
+      builder: (context, state) => HomePage(),
       redirect: (context, state) {
         if (!client.auth.isAuthenticated) {
           return Routes.signinRoute;
         }
-        return null; // Stay on the current route
+        return null;
       },
     ),
     GoRoute(
@@ -25,7 +26,7 @@ final router = GoRouter(
         if (client.auth.isAuthenticated) {
           return Routes.rootRoute;
         }
-        return null; // Stay on the current route
+        return null;
       },
     ),
   ],
