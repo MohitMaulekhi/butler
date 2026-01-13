@@ -8,7 +8,19 @@ emailIdp:
   - finishPasswordReset:
 jwtRefresh:
   - refreshAccessToken:
+calendar:
+  - addEvent:
+  - listEvents:
+  - deleteEvent:
 chat:
   - chat:
+news:
+  - getTopHeadlines:
+  - searchNews:
+task:
+  - addTask:
+  - listTasks:
+  - updateTask:
+  - deleteTask:
 greeting:
   - hello:

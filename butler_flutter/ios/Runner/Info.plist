@@ -49,5 +49,10 @@
 	<string>Butler needs access to speech recognition to chat with you via voice.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Butler needs access to the microphone to hear your voice.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>http</string>
+	</array>
 </dict>
 </plist>

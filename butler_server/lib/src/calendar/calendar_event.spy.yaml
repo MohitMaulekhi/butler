@@ -1,0 +1,7 @@
+class: CalendarEvent
+table: calendar_event
+fields:
+  title: String
+  startTime: DateTime
+  endTime: DateTime
+  description: String?

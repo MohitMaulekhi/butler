@@ -9,6 +9,7 @@ environment:
 dependencies:
   dartantic_ai: ^2.2.0
   github: ^9.25.0
+  http: ^1.6.0
   mailer: ^6.6.0
   serverpod: 3.1.1
   serverpod_auth_idp_server: 3.1.1

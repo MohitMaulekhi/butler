@@ -16,9 +16,11 @@ import 'package:serverpod_client/serverpod_client.dart' as _i2;
 import 'dart:async' as _i3;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _i4;
-import 'package:butler_client/src/protocol/chat/chat_message.dart' as _i5;
-import 'package:butler_client/src/protocol/greetings/greeting.dart' as _i6;
-import 'protocol.dart' as _i7;
+import 'package:butler_client/src/protocol/calendar/calendar_event.dart' as _i5;
+import 'package:butler_client/src/protocol/chat/chat_message.dart' as _i6;
+import 'package:butler_client/src/protocol/tasks/task.dart' as _i7;
+import 'package:butler_client/src/protocol/greetings/greeting.dart' as _i8;
+import 'protocol.dart' as _i9;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -234,6 +236,40 @@ class EndpointJwtRefresh extends _i4.EndpointRefreshJwtTokens {
   );
 }
 
+/// {@category Endpoint}
+class EndpointCalendar extends _i2.EndpointRef {
+  EndpointCalendar(_i2.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'calendar';
+
+  _i3.Future<_i5.CalendarEvent> addEvent(_i5.CalendarEvent event) =>
+      caller.callServerEndpoint<_i5.CalendarEvent>(
+        'calendar',
+        'addEvent',
+        {'event': event},
+      );
+
+  _i3.Future<List<_i5.CalendarEvent>> listEvents(
+    DateTime start,
+    DateTime end,
+  ) => caller.callServerEndpoint<List<_i5.CalendarEvent>>(
+    'calendar',
+    'listEvents',
+    {
+      'start': start,
+      'end': end,
+    },
+  );
+
+  _i3.Future<void> deleteEvent(_i5.CalendarEvent event) =>
+      caller.callServerEndpoint<void>(
+        'calendar',
+        'deleteEvent',
+        {'event': event},
+      );
+}
+
 /// This is the endpoint that provides personal assistant functionality using the
 /// Google Gemini API with optional service integrations.
 /// {@category Endpoint}
@@ -245,7 +281,7 @@ class EndpointChat extends _i2.EndpointRef {
 
   /// Chat with optional service integrations (GitHub, Travel, etc.).
   _i3.Future<String> chat(
-    List<_i5.ChatMessage> messages, {
+    List<_i6.ChatMessage> messages, {
     String? githubToken,
     String? amadeusKey,
     String? weatherKey,
@@ -263,6 +299,70 @@ class EndpointChat extends _i2.EndpointRef {
   );
 }
 
+/// {@category Endpoint}
+class EndpointNews extends _i2.EndpointRef {
+  EndpointNews(_i2.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'news';
+
+  _i3.Future<String> getTopHeadlines({
+    required String country,
+    String? category,
+    required int pageSize,
+  }) => caller.callServerEndpoint<String>(
+    'news',
+    'getTopHeadlines',
+    {
+      'country': country,
+      'category': category,
+      'pageSize': pageSize,
+    },
+  );
+
+  _i3.Future<String> searchNews(String query) =>
+      caller.callServerEndpoint<String>(
+        'news',
+        'searchNews',
+        {'query': query},
+      );
+}
+
+/// {@category Endpoint}
+class EndpointTask extends _i2.EndpointRef {
+  EndpointTask(_i2.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'task';
+
+  _i3.Future<_i7.Task> addTask(_i7.Task task) =>
+      caller.callServerEndpoint<_i7.Task>(
+        'task',
+        'addTask',
+        {'task': task},
+      );
+
+  _i3.Future<List<_i7.Task>> listTasks() =>
+      caller.callServerEndpoint<List<_i7.Task>>(
+        'task',
+        'listTasks',
+        {},
+      );
+
+  _i3.Future<_i7.Task> updateTask(_i7.Task task) =>
+      caller.callServerEndpoint<_i7.Task>(
+        'task',
+        'updateTask',
+        {'task': task},
+      );
+
+  _i3.Future<void> deleteTask(_i7.Task task) => caller.callServerEndpoint<void>(
+    'task',
+    'deleteTask',
+    {'task': task},
+  );
+}
+
 /// This is an example endpoint that returns a greeting message through
 /// its [hello] method.
 /// {@category Endpoint}
@@ -273,8 +373,8 @@ class EndpointGreeting extends _i2.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i3.Future<_i6.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i6.Greeting>(
+  _i3.Future<_i8.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i8.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -312,7 +412,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i7.Protocol(),
+         _i9.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -323,7 +423,10 @@ class Client extends _i2.ServerpodClientShared {
        ) {
     emailIdp = EndpointEmailIdp(this);
     jwtRefresh = EndpointJwtRefresh(this);
+    calendar = EndpointCalendar(this);
     chat = EndpointChat(this);
+    news = EndpointNews(this);
+    task = EndpointTask(this);
     greeting = EndpointGreeting(this);
     modules = Modules(this);
   }
@@ -332,7 +435,13 @@ class Client extends _i2.ServerpodClientShared {
 
   late final EndpointJwtRefresh jwtRefresh;
 
+  late final EndpointCalendar calendar;
+
   late final EndpointChat chat;
+
+  late final EndpointNews news;
+
+  late final EndpointTask task;
 
   late final EndpointGreeting greeting;
 
@@ -342,7 +451,10 @@ class Client extends _i2.ServerpodClientShared {
   Map<String, _i2.EndpointRef> get endpointRefLookup => {
     'emailIdp': emailIdp,
     'jwtRefresh': jwtRefresh,
+    'calendar': calendar,
     'chat': chat,
+    'news': news,
+    'task': task,
     'greeting': greeting,
   };
 

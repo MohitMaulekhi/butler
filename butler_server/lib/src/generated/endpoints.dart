@@ -13,13 +13,19 @@
 import 'package:serverpod/serverpod.dart' as _i1;
 import '../auth/email_idp_endpoint.dart' as _i2;
 import '../auth/jwt_refresh_endpoint.dart' as _i3;
-import '../endpoints/chat_endpoint.dart' as _i4;
-import '../greetings/greeting_endpoint.dart' as _i5;
-import 'package:butler_server/src/generated/chat/chat_message.dart' as _i6;
+import '../endpoints/calendar_endpoint.dart' as _i4;
+import '../endpoints/chat_endpoint.dart' as _i5;
+import '../endpoints/news_endpoint.dart' as _i6;
+import '../endpoints/task_endpoint.dart' as _i7;
+import '../greetings/greeting_endpoint.dart' as _i8;
+import 'package:butler_server/src/generated/calendar/calendar_event.dart'
+    as _i9;
+import 'package:butler_server/src/generated/chat/chat_message.dart' as _i10;
+import 'package:butler_server/src/generated/tasks/task.dart' as _i11;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i7;
+    as _i12;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i8;
+    as _i13;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -37,13 +43,31 @@ class Endpoints extends _i1.EndpointDispatch {
           'jwtRefresh',
           null,
         ),
-      'chat': _i4.ChatEndpoint()
+      'calendar': _i4.CalendarEndpoint()
+        ..initialize(
+          server,
+          'calendar',
+          null,
+        ),
+      'chat': _i5.ChatEndpoint()
         ..initialize(
           server,
           'chat',
           null,
         ),
-      'greeting': _i5.GreetingEndpoint()
+      'news': _i6.NewsEndpoint()
+        ..initialize(
+          server,
+          'news',
+          null,
+        ),
+      'task': _i7.TaskEndpoint()
+        ..initialize(
+          server,
+          'task',
+          null,
+        ),
+      'greeting': _i8.GreetingEndpoint()
         ..initialize(
           server,
           'greeting',
@@ -244,6 +268,75 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    connectors['calendar'] = _i1.EndpointConnector(
+      name: 'calendar',
+      endpoint: endpoints['calendar']!,
+      methodConnectors: {
+        'addEvent': _i1.MethodConnector(
+          name: 'addEvent',
+          params: {
+            'event': _i1.ParameterDescription(
+              name: 'event',
+              type: _i1.getType<_i9.CalendarEvent>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['calendar'] as _i4.CalendarEndpoint).addEvent(
+                    session,
+                    params['event'],
+                  ),
+        ),
+        'listEvents': _i1.MethodConnector(
+          name: 'listEvents',
+          params: {
+            'start': _i1.ParameterDescription(
+              name: 'start',
+              type: _i1.getType<DateTime>(),
+              nullable: false,
+            ),
+            'end': _i1.ParameterDescription(
+              name: 'end',
+              type: _i1.getType<DateTime>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['calendar'] as _i4.CalendarEndpoint).listEvents(
+                    session,
+                    params['start'],
+                    params['end'],
+                  ),
+        ),
+        'deleteEvent': _i1.MethodConnector(
+          name: 'deleteEvent',
+          params: {
+            'event': _i1.ParameterDescription(
+              name: 'event',
+              type: _i1.getType<_i9.CalendarEvent>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['calendar'] as _i4.CalendarEndpoint).deleteEvent(
+                    session,
+                    params['event'],
+                  ),
+        ),
+      },
+    );
     connectors['chat'] = _i1.EndpointConnector(
       name: 'chat',
       endpoint: endpoints['chat']!,
@@ -253,7 +346,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'messages': _i1.ParameterDescription(
               name: 'messages',
-              type: _i1.getType<List<_i6.ChatMessage>>(),
+              type: _i1.getType<List<_i10.ChatMessage>>(),
               nullable: false,
             ),
             'githubToken': _i1.ParameterDescription(
@@ -281,13 +374,138 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i4.ChatEndpoint).chat(
+              ) async => (endpoints['chat'] as _i5.ChatEndpoint).chat(
                 session,
                 params['messages'],
                 githubToken: params['githubToken'],
                 amadeusKey: params['amadeusKey'],
                 weatherKey: params['weatherKey'],
                 enableIntegrations: params['enableIntegrations'],
+              ),
+        ),
+      },
+    );
+    connectors['news'] = _i1.EndpointConnector(
+      name: 'news',
+      endpoint: endpoints['news']!,
+      methodConnectors: {
+        'getTopHeadlines': _i1.MethodConnector(
+          name: 'getTopHeadlines',
+          params: {
+            'country': _i1.ParameterDescription(
+              name: 'country',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'category': _i1.ParameterDescription(
+              name: 'category',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'pageSize': _i1.ParameterDescription(
+              name: 'pageSize',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['news'] as _i6.NewsEndpoint).getTopHeadlines(
+                    session,
+                    country: params['country'],
+                    category: params['category'],
+                    pageSize: params['pageSize'],
+                  ),
+        ),
+        'searchNews': _i1.MethodConnector(
+          name: 'searchNews',
+          params: {
+            'query': _i1.ParameterDescription(
+              name: 'query',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['news'] as _i6.NewsEndpoint).searchNews(
+                session,
+                params['query'],
+              ),
+        ),
+      },
+    );
+    connectors['task'] = _i1.EndpointConnector(
+      name: 'task',
+      endpoint: endpoints['task']!,
+      methodConnectors: {
+        'addTask': _i1.MethodConnector(
+          name: 'addTask',
+          params: {
+            'task': _i1.ParameterDescription(
+              name: 'task',
+              type: _i1.getType<_i11.Task>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['task'] as _i7.TaskEndpoint).addTask(
+                session,
+                params['task'],
+              ),
+        ),
+        'listTasks': _i1.MethodConnector(
+          name: 'listTasks',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['task'] as _i7.TaskEndpoint).listTasks(session),
+        ),
+        'updateTask': _i1.MethodConnector(
+          name: 'updateTask',
+          params: {
+            'task': _i1.ParameterDescription(
+              name: 'task',
+              type: _i1.getType<_i11.Task>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['task'] as _i7.TaskEndpoint).updateTask(
+                session,
+                params['task'],
+              ),
+        ),
+        'deleteTask': _i1.MethodConnector(
+          name: 'deleteTask',
+          params: {
+            'task': _i1.ParameterDescription(
+              name: 'task',
+              type: _i1.getType<_i11.Task>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['task'] as _i7.TaskEndpoint).deleteTask(
+                session,
+                params['task'],
               ),
         ),
       },
@@ -309,16 +527,16 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['greeting'] as _i5.GreetingEndpoint).hello(
+              ) async => (endpoints['greeting'] as _i8.GreetingEndpoint).hello(
                 session,
                 params['name'],
               ),
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i7.Endpoints()
+    modules['serverpod_auth_idp'] = _i12.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i8.Endpoints()
+    modules['serverpod_auth_core'] = _i13.Endpoints()
       ..initializeEndpoints(server);
   }
 }

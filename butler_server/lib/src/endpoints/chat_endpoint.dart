@@ -49,9 +49,25 @@ class ChatEndpoint extends Endpoint {
     // Simple chat without integrations
     if (!enableIntegrations ||
         (githubToken == null && amadeusKey == null && weatherKey == null)) {
-      session.log('Processing simple chat without integrations');
+      // Check if we have server-side keys that enable integrations even if client keys are missing
+      // For now, we only check client keys for short-circuiting, but we should check server keys too.
+      // However, existing logic seems to imply client must provide keys or enable integrations.
+      // If enableIntegrations is true, we proceed even if some keys are null.
+    }
 
-      final systemPrompt =
+    if (!enableIntegrations) {
+       session.log('Processing simple chat without integrations');
+       // ... (existing logic for simple chat) ...
+       // Duplicate existing logic for now or refactor? 
+       // The original code had a check: 
+       // if (!enableIntegrations || (githubToken == null ...))
+       // But if I add News, which uses server key, I should allow it if enableIntegrations is true.
+    }
+    
+    // I will refactor slightly to respect enableIntegrations flag primarily.
+    
+    if (!enableIntegrations) {
+       final systemPrompt =
           'You are Butler, a helpful and friendly personal assistant. '
           'You help users with various tasks including answering questions, '
           'providing information, making suggestions, and assisting with daily activities. '
@@ -64,6 +80,9 @@ class ChatEndpoint extends Endpoint {
     }
 
     // Chat with integrations - use function calling
+    // Get server-side keys
+    final newsApiKey = session.passwords['newsApiKey'];
+
     return await _chatWithTools(
       session,
       agent,
@@ -72,6 +91,7 @@ class ChatEndpoint extends Endpoint {
       githubToken,
       amadeusKey,
       weatherKey,
+      newsApiKey,
     );
   }
 
@@ -84,12 +104,14 @@ class ChatEndpoint extends Endpoint {
     String? githubToken,
     String? amadeusKey,
     String? weatherKey,
+    String? newsApiKey,
   ) async {
     final manager = IntegrationManager(
       session: session,
       githubToken: githubToken,
       amadeusKey: amadeusKey,
       weatherKey: weatherKey,
+      newsApiKey: newsApiKey,
     );
 
     // Get available tools
