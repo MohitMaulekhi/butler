@@ -17,7 +17,8 @@ import 'package:serverpod/serverpod.dart' as _i2;
 import 'dart:async' as _i3;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i4;
-import 'package:butler_server/src/generated/greetings/greeting.dart' as _i5;
+import 'package:butler_server/src/generated/chat/chat_message.dart' as _i5;
+import 'package:butler_server/src/generated/greetings/greeting.dart' as _i6;
 import 'package:butler_server/src/generated/protocol.dart';
 import 'package:butler_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -462,7 +463,7 @@ class _ChatEndpoint {
 
   _i3.Future<String> chat(
     _i1.TestSessionBuilder sessionBuilder,
-    String message, {
+    List<_i5.ChatMessage> messages, {
     String? githubToken,
     String? amadeusKey,
     String? weatherKey,
@@ -480,7 +481,7 @@ class _ChatEndpoint {
           endpointPath: 'chat',
           methodName: 'chat',
           parameters: _i1.testObjectToJson({
-            'message': message,
+            'messages': messages,
             'githubToken': githubToken,
             'amadeusKey': amadeusKey,
             'weatherKey': weatherKey,
@@ -512,7 +513,7 @@ class _GreetingEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i5.Greeting> hello(
+  _i3.Future<_i6.Greeting> hello(
     _i1.TestSessionBuilder sessionBuilder,
     String name,
   ) async {
@@ -535,7 +536,7 @@ class _GreetingEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i5.Greeting>);
+                as _i3.Future<_i6.Greeting>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

@@ -1,0 +1,4 @@
+class: ChatMessage
+fields:
+  content: String
+  isUser: bool

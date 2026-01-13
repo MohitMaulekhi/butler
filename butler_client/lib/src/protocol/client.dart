@@ -16,8 +16,9 @@ import 'package:serverpod_client/serverpod_client.dart' as _i2;
 import 'dart:async' as _i3;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _i4;
-import 'package:butler_client/src/protocol/greetings/greeting.dart' as _i5;
-import 'protocol.dart' as _i6;
+import 'package:butler_client/src/protocol/chat/chat_message.dart' as _i5;
+import 'package:butler_client/src/protocol/greetings/greeting.dart' as _i6;
+import 'protocol.dart' as _i7;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -244,7 +245,7 @@ class EndpointChat extends _i2.EndpointRef {
 
   /// Chat with optional service integrations (GitHub, Travel, etc.).
   _i3.Future<String> chat(
-    String message, {
+    List<_i5.ChatMessage> messages, {
     String? githubToken,
     String? amadeusKey,
     String? weatherKey,
@@ -253,7 +254,7 @@ class EndpointChat extends _i2.EndpointRef {
     'chat',
     'chat',
     {
-      'message': message,
+      'messages': messages,
       'githubToken': githubToken,
       'amadeusKey': amadeusKey,
       'weatherKey': weatherKey,
@@ -272,8 +273,8 @@ class EndpointGreeting extends _i2.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i3.Future<_i5.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i5.Greeting>(
+  _i3.Future<_i6.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i6.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -311,7 +312,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i6.Protocol(),
+         _i7.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,

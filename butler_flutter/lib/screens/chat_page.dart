@@ -1,5 +1,8 @@
+import 'package:butler_client/butler_client.dart' as protocol;
 import 'package:butler_flutter/main.dart';
+import 'package:butler_flutter/screens/components/voice_modal.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ChatPage extends StatefulWidget {
@@ -13,15 +16,35 @@ class _ChatPageState extends State<ChatPage> {
   final _storage = const FlutterSecureStorage();
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
-  final List<ChatMessage> _messages = [];
+  final List<UiChatMessage> _messages = [];
   bool _isLoading = false;
+
+  void _resetChat() {
+    setState(() {
+      _messages.clear();
+    });
+  }
+
+  void _openVoiceModal() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const VoiceModal(),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      _messageController.text = result;
+      _sendMessage();
+    }
+  }
 
   Future<void> _sendMessage() async {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
 
     setState(() {
-      _messages.add(ChatMessage(text: message, isUser: true));
+      _messages.add(UiChatMessage(text: message, isUser: true));
       _isLoading = true;
     });
 
@@ -33,9 +56,15 @@ class _ChatPageState extends State<ChatPage> {
       final amadeusKey = await _storage.read(key: 'amadeus_key');
       final weatherKey = await _storage.read(key: 'weather_key');
 
+      // Convert history to protocol messages
+      final history = _messages
+          .where((m) => !m.isError)
+          .map((m) => m.toProtocol())
+          .toList();
+
       // Use global client from main.dart
       final response = await client.chat.chat(
-        message,
+        history,
         githubToken: githubToken,
         amadeusKey: amadeusKey,
         weatherKey: weatherKey,
@@ -44,7 +73,7 @@ class _ChatPageState extends State<ChatPage> {
 
       if (mounted) {
         setState(() {
-          _messages.add(ChatMessage(text: response, isUser: false));
+          _messages.add(UiChatMessage(text: response, isUser: false));
           _isLoading = false;
         });
         _scrollToBottom();
@@ -53,7 +82,7 @@ class _ChatPageState extends State<ChatPage> {
       if (mounted) {
         setState(() {
           _messages.add(
-            ChatMessage(
+            UiChatMessage(
               text: 'Error: ${e.toString()}',
               isUser: false,
               isError: true,
@@ -82,6 +111,23 @@ class _ChatPageState extends State<ChatPage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        if (_messages.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _resetChat,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('New Chat'),
+                  style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: _messages.isEmpty
               ? const Center(
@@ -114,14 +160,20 @@ class _ChatPageState extends State<ChatPage> {
                               : Colors.grey.shade200,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Text(
-                          message.text,
-                          style: TextStyle(
-                            color: message.isUser
-                                ? Colors.white
-                                : Colors.black87,
-                          ),
-                        ),
+                        child: message.isUser
+                            ? Text(
+                                message.text,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                ),
+                              )
+                            : MarkdownBody(
+                                data: message.text,
+                                styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+                                  p: const TextStyle(color: Colors.black87),
+                                ),
+                                selectable: true,
+                              ),
                       ),
                     );
                   },
@@ -132,12 +184,19 @@ class _ChatPageState extends State<ChatPage> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
+              IconButton(
+                onPressed: _isLoading ? null : _openVoiceModal,
+                icon: const Icon(Icons.mic),
+                tooltip: 'Voice Chat',
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: TextField(
                   controller: _messageController,
                   decoration: const InputDecoration(
                     hintText: 'Type a message...',
                     border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                   onSubmitted: (_) => _sendMessage(),
                 ),
@@ -162,14 +221,18 @@ class _ChatPageState extends State<ChatPage> {
   }
 }
 
-class ChatMessage {
+class UiChatMessage {
   final String text;
   final bool isUser;
   final bool isError;
 
-  ChatMessage({
+  UiChatMessage({
     required this.text,
     required this.isUser,
     this.isError = false,
   });
+
+  protocol.ChatMessage toProtocol() {
+    return protocol.ChatMessage(content: text, isUser: isUser);
+  }
 }

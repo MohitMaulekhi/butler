@@ -15,10 +15,11 @@ import '../auth/email_idp_endpoint.dart' as _i2;
 import '../auth/jwt_refresh_endpoint.dart' as _i3;
 import '../endpoints/chat_endpoint.dart' as _i4;
 import '../greetings/greeting_endpoint.dart' as _i5;
+import 'package:butler_server/src/generated/chat/chat_message.dart' as _i6;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i6;
-import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i7;
+import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+    as _i8;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -250,9 +251,9 @@ class Endpoints extends _i1.EndpointDispatch {
         'chat': _i1.MethodConnector(
           name: 'chat',
           params: {
-            'message': _i1.ParameterDescription(
-              name: 'message',
-              type: _i1.getType<String>(),
+            'messages': _i1.ParameterDescription(
+              name: 'messages',
+              type: _i1.getType<List<_i6.ChatMessage>>(),
               nullable: false,
             ),
             'githubToken': _i1.ParameterDescription(
@@ -282,7 +283,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 Map<String, dynamic> params,
               ) async => (endpoints['chat'] as _i4.ChatEndpoint).chat(
                 session,
-                params['message'],
+                params['messages'],
                 githubToken: params['githubToken'],
                 amadeusKey: params['amadeusKey'],
                 weatherKey: params['weatherKey'],
@@ -315,9 +316,9 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i6.Endpoints()
+    modules['serverpod_auth_idp'] = _i7.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i7.Endpoints()
+    modules['serverpod_auth_core'] = _i8.Endpoints()
       ..initializeEndpoints(server);
   }
 }
