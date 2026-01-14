@@ -82,6 +82,7 @@ class ChatEndpoint extends Endpoint {
     // Chat with integrations - use function calling
     // Get server-side keys
     final newsApiKey = session.passwords['newsApiKey'];
+    final tavilyApiKey = session.passwords['tavilyApiKey'];
 
     return await _chatWithTools(
       session,
@@ -92,6 +93,7 @@ class ChatEndpoint extends Endpoint {
       amadeusKey,
       weatherKey,
       newsApiKey,
+      tavilyApiKey,
     );
   }
 
@@ -105,6 +107,7 @@ class ChatEndpoint extends Endpoint {
     String? amadeusKey,
     String? weatherKey,
     String? newsApiKey,
+    String? tavilyApiKey,
   ) async {
     final manager = IntegrationManager(
       session: session,
@@ -112,6 +115,7 @@ class ChatEndpoint extends Endpoint {
       amadeusKey: amadeusKey,
       weatherKey: weatherKey,
       newsApiKey: newsApiKey,
+      tavilyApiKey: tavilyApiKey,
     );
 
     // Get available tools

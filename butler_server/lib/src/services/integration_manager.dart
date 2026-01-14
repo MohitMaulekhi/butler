@@ -4,6 +4,7 @@ import 'email_service.dart';
 import 'github_service.dart';
 import 'news_service.dart';
 import 'travel_service.dart';
+import 'tavily_service.dart';
 
 /// Tool schema for Gemini.
 class ToolSchema {
@@ -25,6 +26,7 @@ class IntegrationManager {
   final String? amadeusKey;
   final String? weatherKey;
   final String? newsApiKey;
+  final String? tavilyApiKey;
 
   IntegrationManager({
     required this.session,
@@ -32,6 +34,7 @@ class IntegrationManager {
     this.amadeusKey,
     this.weatherKey,
     this.newsApiKey,
+    this.tavilyApiKey,
   });
 
   /// Gets list of available tools based on provided tokens.
@@ -146,6 +149,18 @@ class IntegrationManager {
           parameters: {'query': 'string'},
         ),
       ]);
+    }
+
+
+
+    if (tavilyApiKey != null) {
+      tools.add(
+        ToolSchema(
+          name: 'web_search',
+          description: 'Search the web for information using Tavily',
+          parameters: {'query': 'string'},
+        ),
+      );
     }
 
     return tools;
@@ -273,6 +288,13 @@ class IntegrationManager {
         if (newsApiKey == null) throw Exception('News API key required');
         final service = NewsService(session, newsApiKey!);
         return await service.searchNews(arguments['query']);
+
+
+
+      case 'web_search':
+        if (tavilyApiKey == null) throw Exception('Tavily API key required');
+        final service = TavilyService(session, tavilyApiKey!);
+        return await service.search(arguments['query']);
 
       default:
         throw Exception('Unknown tool: $toolName');
