@@ -70,6 +70,19 @@ class IntegrationManager {
           },
         ),
       );
+      
+      tools.add(
+        ToolSchema(
+          name: 'search_hotels',
+          description: 'Search for hotels or hostels in a city',
+          parameters: {
+            'cityCode': 'string (IATA code like PAR, NYC, LON)',
+            'checkInDate': 'string (YYYY-MM-DD, optional)',
+            'checkOutDate': 'string (YYYY-MM-DD, optional)',
+            'adults': 'integer (default 1)',
+          },
+        ),
+      );
     }
 
     if (weatherKey != null) {
@@ -102,17 +115,17 @@ class IntegrationManager {
 
     // Email
     tools.add(
-      ToolSchema(
-        name: 'send_email',
-        description: 'Send an email',
-        parameters: {
-          'recipient': 'string',
-          'subject': 'string',
-          'body': 'string',
-        },
-      ),
-    );
-
+        ToolSchema(
+          name: 'send_email',
+          description: 'Send an email',
+          parameters: {
+            'recipient': 'string',
+            'subject': 'string',
+            'body': 'string',
+          },
+        ),
+      );
+    
     // Calendar
     tools.addAll([
       ToolSchema(
@@ -198,6 +211,17 @@ class IntegrationManager {
           origin: arguments['origin'],
           destination: arguments['destination'],
           date: arguments['date'],
+          amadeusKey: amadeusKey!,
+        );
+        
+      case 'search_hotels':
+        if (amadeusKey == null) throw Exception('Amadeus API key required');
+        return await TravelService.searchHotels(
+          session,
+          cityCode: arguments['cityCode'],
+          checkInDate: arguments['checkInDate'],
+          checkOutDate: arguments['checkOutDate'],
+          adults: arguments['adults'] ?? 1,
           amadeusKey: amadeusKey!,
         );
 

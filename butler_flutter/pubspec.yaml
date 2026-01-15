@@ -39,6 +39,7 @@ dependencies:
   permission_handler: ^12.0.1
   intl: ^0.20.2
   url_launcher: ^6.3.2
+  add_2_calendar: ^3.0.1
 
 dev_dependencies:
   flutter_lints: '>=3.0.0 <7.0.0'

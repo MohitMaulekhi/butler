@@ -2,6 +2,7 @@ import 'package:butler_client/butler_client.dart';
 import 'package:flutter/material.dart';
 import 'package:butler_flutter/main.dart';
 import 'package:intl/intl.dart';
+import 'package:add_2_calendar/add_2_calendar.dart' as add2;
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -159,6 +160,18 @@ class CalendarPageState extends State<CalendarPage> {
       );
   }
 
+  void _addToCalendar(CalendarEvent event) {
+    final add2.Event calendarEvent = add2.Event(
+      title: event.title,
+      description: event.description ?? '',
+      location: 'Butler App Event',
+      startDate: event.startTime,
+      endDate: event.endTime,
+      allDay: false,
+    );
+    add2.Add2Calendar.addEvent2Cal(calendarEvent);
+  }
+
   @override
   Widget build(BuildContext context) {
       final dateFormat = DateFormat('EEEE, MMM d');
@@ -207,9 +220,18 @@ class CalendarPageState extends State<CalendarPage> {
                                           ),
                                           title: Text(event.title),
                                           subtitle: event.description != null ? Text(event.description!) : null,
-                                          trailing: IconButton(
-                                              icon: const Icon(Icons.delete_outline),
-                                              onPressed: () => _deleteEvent(event),
+                                          trailing: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                icon: const Icon(Icons.edit_calendar),
+                                                onPressed: () => _addToCalendar(event),
+                                              ),
+                                              IconButton(
+                                                  icon: const Icon(Icons.delete_outline),
+                                                  onPressed: () => _deleteEvent(event),
+                                              ),
+                                            ],
                                           ),
                                       );
                                   },
