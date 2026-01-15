@@ -6,6 +6,7 @@ import 'package:serverpod_auth_idp_server/providers/email.dart';
 
 import 'src/generated/endpoints.dart';
 import 'src/generated/protocol.dart';
+import 'src/rest/health.dart';
 import 'src/web/routes/app_config_route.dart';
 import 'src/web/routes/root.dart';
 import 'src/services/email_service.dart';
@@ -31,6 +32,9 @@ void run(List<String> args) async {
       ),
     ],
   );
+
+  // Register REST health check endpoint
+  registerHealthRoute(pod);
 
   // Setup a default page at the web root.
   // These are used by the default page.
