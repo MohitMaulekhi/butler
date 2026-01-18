@@ -12,6 +12,12 @@ calendar:
   - addEvent:
   - listEvents:
   - deleteEvent:
+  - getGoogleAuthUrl:
+  - handleGoogleCallback:
+  - getGoogleConnectionStatus:
+  - syncFromGoogle:
+  - pushEventToGoogle:
+  - disconnectGoogle:
 chat:
   - chat:
 news:

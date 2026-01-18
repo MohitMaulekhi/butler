@@ -27,9 +27,12 @@ class _NewsPageState extends State<NewsPage> {
       _error = null;
     });
     try {
-      final jsonStr = await client.news.getTopHeadlines(country: 'us', pageSize: 50);
+      final jsonStr = await client.news.getTopHeadlines(
+        country: 'us',
+        pageSize: 50,
+      );
       final data = jsonDecode(jsonStr);
-      
+
       if (data['status'] == 'ok') {
         setState(() {
           _articles = data['articles'];
@@ -114,7 +117,7 @@ class _NewsPageState extends State<NewsPage> {
                         height: 200,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
                       ),
                     Padding(
                       padding: const EdgeInsets.all(16.0),

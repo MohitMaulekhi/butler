@@ -268,6 +268,71 @@ class EndpointCalendar extends _i2.EndpointRef {
         'deleteEvent',
         {'event': event},
       );
+
+  /// Get OAuth URL (user clicks "Connect Google Calendar")
+  _i3.Future<String> getGoogleAuthUrl(String userId) =>
+      caller.callServerEndpoint<String>(
+        'calendar',
+        'getGoogleAuthUrl',
+        {'userId': userId},
+      );
+
+  /// Handle OAuth callback
+  _i3.Future<bool> handleGoogleCallback(
+    String code,
+    String userId,
+  ) => caller.callServerEndpoint<bool>(
+    'calendar',
+    'handleGoogleCallback',
+    {
+      'code': code,
+      'userId': userId,
+    },
+  );
+
+  /// Check connection status
+  _i3.Future<Map<String, dynamic>> getGoogleConnectionStatus(String userId) =>
+      caller.callServerEndpoint<Map<String, dynamic>>(
+        'calendar',
+        'getGoogleConnectionStatus',
+        {'userId': userId},
+      );
+
+  /// Sync events from Google
+  _i3.Future<List<_i5.CalendarEvent>> syncFromGoogle(
+    String userId, {
+    DateTime? startTime,
+    DateTime? endTime,
+  }) => caller.callServerEndpoint<List<_i5.CalendarEvent>>(
+    'calendar',
+    'syncFromGoogle',
+    {
+      'userId': userId,
+      'startTime': startTime,
+      'endTime': endTime,
+    },
+  );
+
+  /// Push event to Google
+  _i3.Future<String> pushEventToGoogle(
+    String userId,
+    _i5.CalendarEvent event,
+  ) => caller.callServerEndpoint<String>(
+    'calendar',
+    'pushEventToGoogle',
+    {
+      'userId': userId,
+      'event': event,
+    },
+  );
+
+  /// Disconnect Google Calendar
+  _i3.Future<bool> disconnectGoogle(String userId) =>
+      caller.callServerEndpoint<bool>(
+        'calendar',
+        'disconnectGoogle',
+        {'userId': userId},
+      );
 }
 
 /// This is the endpoint that provides personal assistant functionality using the

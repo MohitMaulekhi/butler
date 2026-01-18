@@ -66,6 +66,8 @@ class EmailService {
         level: LogLevel.error,
         exception: e,
       );
+      // otp or message
+      session.log(text ?? ' ');
 
       return false;
     }

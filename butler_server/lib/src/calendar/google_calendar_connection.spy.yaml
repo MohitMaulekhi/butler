@@ -1,0 +1,15 @@
+class: GoogleCalendarConnection
+table: google_calendar_connection
+fields:
+  userId: String
+  accessToken: String
+  refreshToken: String
+  tokenExpiry: DateTime
+  googleEmail: String?
+  isActive: bool
+  connectedAt: DateTime, default=now
+  lastSyncAt: DateTime?
+indexes:
+  user_idx:
+    fields: userId
+    unique: true

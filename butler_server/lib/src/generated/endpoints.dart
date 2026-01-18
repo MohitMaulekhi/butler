@@ -335,6 +335,144 @@ class Endpoints extends _i1.EndpointDispatch {
                     params['event'],
                   ),
         ),
+        'getGoogleAuthUrl': _i1.MethodConnector(
+          name: 'getGoogleAuthUrl',
+          params: {
+            'userId': _i1.ParameterDescription(
+              name: 'userId',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['calendar'] as _i4.CalendarEndpoint)
+                  .getGoogleAuthUrl(
+                    session,
+                    params['userId'],
+                  ),
+        ),
+        'handleGoogleCallback': _i1.MethodConnector(
+          name: 'handleGoogleCallback',
+          params: {
+            'code': _i1.ParameterDescription(
+              name: 'code',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'userId': _i1.ParameterDescription(
+              name: 'userId',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['calendar'] as _i4.CalendarEndpoint)
+                  .handleGoogleCallback(
+                    session,
+                    params['code'],
+                    params['userId'],
+                  ),
+        ),
+        'getGoogleConnectionStatus': _i1.MethodConnector(
+          name: 'getGoogleConnectionStatus',
+          params: {
+            'userId': _i1.ParameterDescription(
+              name: 'userId',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['calendar'] as _i4.CalendarEndpoint)
+                  .getGoogleConnectionStatus(
+                    session,
+                    params['userId'],
+                  ),
+        ),
+        'syncFromGoogle': _i1.MethodConnector(
+          name: 'syncFromGoogle',
+          params: {
+            'userId': _i1.ParameterDescription(
+              name: 'userId',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'startTime': _i1.ParameterDescription(
+              name: 'startTime',
+              type: _i1.getType<DateTime?>(),
+              nullable: true,
+            ),
+            'endTime': _i1.ParameterDescription(
+              name: 'endTime',
+              type: _i1.getType<DateTime?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['calendar'] as _i4.CalendarEndpoint)
+                  .syncFromGoogle(
+                    session,
+                    params['userId'],
+                    startTime: params['startTime'],
+                    endTime: params['endTime'],
+                  ),
+        ),
+        'pushEventToGoogle': _i1.MethodConnector(
+          name: 'pushEventToGoogle',
+          params: {
+            'userId': _i1.ParameterDescription(
+              name: 'userId',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+            'event': _i1.ParameterDescription(
+              name: 'event',
+              type: _i1.getType<_i9.CalendarEvent>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['calendar'] as _i4.CalendarEndpoint)
+                  .pushEventToGoogle(
+                    session,
+                    params['userId'],
+                    params['event'],
+                  ),
+        ),
+        'disconnectGoogle': _i1.MethodConnector(
+          name: 'disconnectGoogle',
+          params: {
+            'userId': _i1.ParameterDescription(
+              name: 'userId',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['calendar'] as _i4.CalendarEndpoint)
+                  .disconnectGoogle(
+                    session,
+                    params['userId'],
+                  ),
+        ),
       },
     );
     connectors['chat'] = _i1.EndpointConnector(
