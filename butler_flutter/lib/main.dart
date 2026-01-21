@@ -33,7 +33,7 @@ void main() async {
   // no matter which environment it is running in.
   final config = await AppConfig.loadConfig();
   final serverUrl = serverUrlFromEnv.isEmpty
-      ? config.apiUrl ?? 'http://192.168.1.100:8080/'
+      ? config.apiUrl ?? 'https://butler.pixelapp.tech/'
       : serverUrlFromEnv;
 
   client = Client(serverUrl)
