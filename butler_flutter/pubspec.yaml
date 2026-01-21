@@ -41,6 +41,7 @@ dependencies:
   url_launcher: ^6.3.2
   add_2_calendar: ^3.0.1
   flutter_web_auth_2: ^4.0.0
+  audioplayers: ^6.5.1
 
 dev_dependencies:
   flutter_lints: '>=3.0.0 <7.0.0'

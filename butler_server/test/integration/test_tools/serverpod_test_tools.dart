@@ -20,8 +20,9 @@ import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
 import 'package:butler_server/src/generated/calendar/calendar_event.dart'
     as _i5;
 import 'package:butler_server/src/generated/chat/chat_message.dart' as _i6;
-import 'package:butler_server/src/generated/tasks/task.dart' as _i7;
-import 'package:butler_server/src/generated/greetings/greeting.dart' as _i8;
+import 'dart:typed_data' as _i7;
+import 'package:butler_server/src/generated/tasks/task.dart' as _i8;
+import 'package:butler_server/src/generated/greetings/greeting.dart' as _i9;
 import 'package:butler_server/src/generated/protocol.dart';
 import 'package:butler_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -137,6 +138,8 @@ class TestEndpoints {
 
   late final _ChatEndpoint chat;
 
+  late final _ElevenLabsEndpoint elevenLabs;
+
   late final _NewsEndpoint news;
 
   late final _TaskEndpoint task;
@@ -164,6 +167,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     chat = _ChatEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    elevenLabs = _ElevenLabsEndpoint(
       endpoints,
       serializationManager,
     );
@@ -832,6 +839,52 @@ class _ChatEndpoint {
   }
 }
 
+class _ElevenLabsEndpoint {
+  _ElevenLabsEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i3.Future<_i7.ByteData> textToSpeech(
+    _i1.TestSessionBuilder sessionBuilder,
+    String text, {
+    String? voiceId,
+  }) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'elevenLabs',
+            method: 'textToSpeech',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'elevenLabs',
+          methodName: 'textToSpeech',
+          parameters: _i1.testObjectToJson({
+            'text': text,
+            'voiceId': voiceId,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i7.ByteData>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
 class _NewsEndpoint {
   _NewsEndpoint(
     this._endpointDispatch,
@@ -921,9 +974,9 @@ class _TaskEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i7.Task> addTask(
+  _i3.Future<_i8.Task> addTask(
     _i1.TestSessionBuilder sessionBuilder,
-    _i7.Task task,
+    _i8.Task task,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -944,7 +997,7 @@ class _TaskEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i7.Task>);
+                as _i3.Future<_i8.Task>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -952,7 +1005,7 @@ class _TaskEndpoint {
     });
   }
 
-  _i3.Future<List<_i7.Task>> listTasks(
+  _i3.Future<List<_i8.Task>> listTasks(
     _i1.TestSessionBuilder sessionBuilder,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
@@ -974,7 +1027,7 @@ class _TaskEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<List<_i7.Task>>);
+                as _i3.Future<List<_i8.Task>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -982,9 +1035,9 @@ class _TaskEndpoint {
     });
   }
 
-  _i3.Future<_i7.Task> updateTask(
+  _i3.Future<_i8.Task> updateTask(
     _i1.TestSessionBuilder sessionBuilder,
-    _i7.Task task,
+    _i8.Task task,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -1005,7 +1058,7 @@ class _TaskEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i7.Task>);
+                as _i3.Future<_i8.Task>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1015,7 +1068,7 @@ class _TaskEndpoint {
 
   _i3.Future<void> deleteTask(
     _i1.TestSessionBuilder sessionBuilder,
-    _i7.Task task,
+    _i8.Task task,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -1055,7 +1108,7 @@ class _GreetingEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i8.Greeting> hello(
+  _i3.Future<_i9.Greeting> hello(
     _i1.TestSessionBuilder sessionBuilder,
     String name,
   ) async {
@@ -1078,7 +1131,7 @@ class _GreetingEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i8.Greeting>);
+                as _i3.Future<_i9.Greeting>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

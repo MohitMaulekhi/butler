@@ -4,6 +4,8 @@ import 'package:butler_flutter/screens/components/voice_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'dart:typed_data';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -18,6 +20,8 @@ class _ChatPageState extends State<ChatPage> {
   final _scrollController = ScrollController();
   final List<UiChatMessage> _messages = [];
   bool _isLoading = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  bool _autoPlayAudio = true;
 
   void _resetChat() {
     setState(() {
@@ -77,6 +81,10 @@ class _ChatPageState extends State<ChatPage> {
           _isLoading = false;
         });
         _scrollToBottom();
+        
+        if (_autoPlayAudio) {
+          _speak(response);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -107,6 +115,23 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  Future<void> _speak(String text) async {
+    try {
+      // Don't block UI
+      final bytes = await client.elevenLabs.textToSpeech(text);
+      // ByteData to Uint8List
+      final list = bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes);
+      await _audioPlayer.play(BytesSource(list));
+    } catch (e) {
+      debugPrint('Error playing audio: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to play audio: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -117,6 +142,15 @@ class _ChatPageState extends State<ChatPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                IconButton(
+                  icon: Icon(_autoPlayAudio ? Icons.volume_up : Icons.volume_off),
+                  onPressed: () {
+                    setState(() {
+                      _autoPlayAudio = !_autoPlayAudio;
+                    });
+                  },
+                  tooltip: _autoPlayAudio ? 'Mute Auto-play' : 'Enable Auto-play',
+                ),
                 OutlinedButton.icon(
                   onPressed: _resetChat,
                   icon: const Icon(Icons.refresh),
@@ -217,6 +251,7 @@ class _ChatPageState extends State<ChatPage> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 }

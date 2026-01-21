@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'dart:math' as math;
 
 class VoiceModal extends StatefulWidget {
   const VoiceModal({super.key});
@@ -9,17 +10,28 @@ class VoiceModal extends StatefulWidget {
   State<VoiceModal> createState() => _VoiceModalState();
 }
 
-class _VoiceModalState extends State<VoiceModal> {
+class _VoiceModalState extends State<VoiceModal> with SingleTickerProviderStateMixin {
   late stt.SpeechToText _speech;
   bool _isListening = false;
   String _text = 'Initializing...';
   bool _available = false;
+  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
     _speech = stt.SpeechToText();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat();
     _initSpeech();
+  }
+  
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   void _initSpeech() async {
@@ -85,7 +97,7 @@ class _VoiceModalState extends State<VoiceModal> {
     if (mounted) {
       if (_available) {
         setState(() {
-          _text = 'Press the button and start speaking';
+          _text = 'Press to speak';
         });
         _listen();
       } else {
@@ -109,9 +121,6 @@ class _VoiceModalState extends State<VoiceModal> {
             onResult: (val) {
               setState(() {
                 _text = val.recognizedWords;
-                if (val.hasConfidenceRating && val.confidence > 0) {
-                  // Optional: use confidence
-                }
               });
             },
             listenFor: const Duration(seconds: 30),
@@ -137,11 +146,21 @@ class _VoiceModalState extends State<VoiceModal> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 8),
           Container(
             width: 40,
             height: 4,
@@ -150,55 +169,95 @@ class _VoiceModalState extends State<VoiceModal> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
+          const SizedBox(height: 32),
+          
+          // Creative Voice Visualization
+          SizedBox(
+            height: 80,
+            child: _isListening 
+              ? AnimatedBuilder(
+                  animation: _animationController,
+                  builder: (context, child) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Transform.scale(
+                            scaleY: 0.5 + 0.5 * math.sin(_animationController.value * 2 * math.pi + index),
+                            child: Container(
+                              width: 10,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).primaryColor,
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    );
+                  },
+                )
+              : Icon(
+                  Icons.mic_none,
+                  size: 60,
+                  color: Colors.grey.shade400,
+                ),
+          ),
+          
           const SizedBox(height: 24),
           Text(
-            _isListening ? 'Listening...' : 'Not Listening',
-            style: Theme.of(context).textTheme.titleMedium,
+            _isListening ? 'Listening...' : (_text == 'Press to speak' ? 'Tap to Speak' : 'Paused'),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20),
+            constraints: const BoxConstraints(minHeight: 60),
             child: Text(
               _text,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w500),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Colors.grey.shade700,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
           const SizedBox(height: 40),
+          
+          // Controls
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
+              IconButton.filledTonal(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+                iconSize: 24,
+              ),
+              
               FloatingActionButton.large(
                 onPressed: _available ? _listen : null,
                 backgroundColor: _isListening ? Colors.red : Theme.of(context).primaryColor,
+                elevation: _isListening ? 8 : 4,
                 child: Icon(
                   _isListening ? Icons.stop : Icons.mic,
                   color: Colors.white,
                   size: 32,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancel'),
-              ),
-              const SizedBox(width: 16),
-              FilledButton(
+              
+              IconButton.filled(
                 onPressed: _text.isNotEmpty && 
-                          _text != 'Press the button and start speaking' && 
-                          _text != 'Initializing...' &&
-                          _text != 'Listening...' &&
-                          !_text.startsWith('Error') &&
-                          !_text.startsWith('Microphone') &&
-                          !_text.startsWith('Speech recognition not available')
+                          !_text.startsWith('Initializing') &&
+                          !_text.startsWith('Press') &&
+                          !_text.startsWith('Error')
                     ? () => Navigator.pop(context, _text)
                     : null,
-                child: const Text('Send'),
+                icon: const Icon(Icons.send),
+                iconSize: 24,
               ),
             ],
           ),

@@ -20,6 +20,8 @@ calendar:
   - disconnectGoogle:
 chat:
   - chat:
+elevenLabs:
+  - textToSpeech:
 news:
   - getTopHeadlines:
   - searchNews:

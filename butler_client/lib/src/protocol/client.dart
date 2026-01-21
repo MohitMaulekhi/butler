@@ -18,9 +18,10 @@ import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
     as _i4;
 import 'package:butler_client/src/protocol/calendar/calendar_event.dart' as _i5;
 import 'package:butler_client/src/protocol/chat/chat_message.dart' as _i6;
-import 'package:butler_client/src/protocol/tasks/task.dart' as _i7;
-import 'package:butler_client/src/protocol/greetings/greeting.dart' as _i8;
-import 'protocol.dart' as _i9;
+import 'dart:typed_data' as _i7;
+import 'package:butler_client/src/protocol/tasks/task.dart' as _i8;
+import 'package:butler_client/src/protocol/greetings/greeting.dart' as _i9;
+import 'protocol.dart' as _i10;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -365,6 +366,26 @@ class EndpointChat extends _i2.EndpointRef {
 }
 
 /// {@category Endpoint}
+class EndpointElevenLabs extends _i2.EndpointRef {
+  EndpointElevenLabs(_i2.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'elevenLabs';
+
+  _i3.Future<_i7.ByteData> textToSpeech(
+    String text, {
+    String? voiceId,
+  }) => caller.callServerEndpoint<_i7.ByteData>(
+    'elevenLabs',
+    'textToSpeech',
+    {
+      'text': text,
+      'voiceId': voiceId,
+    },
+  );
+}
+
+/// {@category Endpoint}
 class EndpointNews extends _i2.EndpointRef {
   EndpointNews(_i2.EndpointCaller caller) : super(caller);
 
@@ -400,28 +421,28 @@ class EndpointTask extends _i2.EndpointRef {
   @override
   String get name => 'task';
 
-  _i3.Future<_i7.Task> addTask(_i7.Task task) =>
-      caller.callServerEndpoint<_i7.Task>(
+  _i3.Future<_i8.Task> addTask(_i8.Task task) =>
+      caller.callServerEndpoint<_i8.Task>(
         'task',
         'addTask',
         {'task': task},
       );
 
-  _i3.Future<List<_i7.Task>> listTasks() =>
-      caller.callServerEndpoint<List<_i7.Task>>(
+  _i3.Future<List<_i8.Task>> listTasks() =>
+      caller.callServerEndpoint<List<_i8.Task>>(
         'task',
         'listTasks',
         {},
       );
 
-  _i3.Future<_i7.Task> updateTask(_i7.Task task) =>
-      caller.callServerEndpoint<_i7.Task>(
+  _i3.Future<_i8.Task> updateTask(_i8.Task task) =>
+      caller.callServerEndpoint<_i8.Task>(
         'task',
         'updateTask',
         {'task': task},
       );
 
-  _i3.Future<void> deleteTask(_i7.Task task) => caller.callServerEndpoint<void>(
+  _i3.Future<void> deleteTask(_i8.Task task) => caller.callServerEndpoint<void>(
     'task',
     'deleteTask',
     {'task': task},
@@ -438,8 +459,8 @@ class EndpointGreeting extends _i2.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i3.Future<_i8.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i8.Greeting>(
+  _i3.Future<_i9.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i9.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -477,7 +498,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i9.Protocol(),
+         _i10.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -490,6 +511,7 @@ class Client extends _i2.ServerpodClientShared {
     jwtRefresh = EndpointJwtRefresh(this);
     calendar = EndpointCalendar(this);
     chat = EndpointChat(this);
+    elevenLabs = EndpointElevenLabs(this);
     news = EndpointNews(this);
     task = EndpointTask(this);
     greeting = EndpointGreeting(this);
@@ -503,6 +525,8 @@ class Client extends _i2.ServerpodClientShared {
   late final EndpointCalendar calendar;
 
   late final EndpointChat chat;
+
+  late final EndpointElevenLabs elevenLabs;
 
   late final EndpointNews news;
 
@@ -518,6 +542,7 @@ class Client extends _i2.ServerpodClientShared {
     'jwtRefresh': jwtRefresh,
     'calendar': calendar,
     'chat': chat,
+    'elevenLabs': elevenLabs,
     'news': news,
     'task': task,
     'greeting': greeting,
