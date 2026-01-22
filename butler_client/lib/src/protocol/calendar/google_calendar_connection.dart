@@ -50,9 +50,11 @@ abstract class GoogleCalendarConnection implements _i1.SerializableModel {
       ),
       googleEmail: jsonSerialization['googleEmail'] as String?,
       isActive: jsonSerialization['isActive'] as bool,
-      connectedAt: _i1.DateTimeJsonExtension.fromJson(
-        jsonSerialization['connectedAt'],
-      ),
+      connectedAt: jsonSerialization['connectedAt'] == null
+          ? null
+          : _i1.DateTimeJsonExtension.fromJson(
+              jsonSerialization['connectedAt'],
+            ),
       lastSyncAt: jsonSerialization['lastSyncAt'] == null
           ? null
           : _i1.DateTimeJsonExtension.fromJson(jsonSerialization['lastSyncAt']),
