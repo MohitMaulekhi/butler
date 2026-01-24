@@ -25,8 +25,9 @@ import 'package:butler_server/src/generated/chat/chat_message.dart' as _i11;
 import 'package:butler_server/src/generated/tasks/task.dart' as _i12;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _i13;
+import 'package:serverpod_auth_server/serverpod_auth_server.dart' as _i14;
 import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
-    as _i14;
+    as _i15;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -486,6 +487,35 @@ class Endpoints extends _i1.EndpointDispatch {
       name: 'chat',
       endpoint: endpoints['chat']!,
       methodConnectors: {
+        'getHistory': _i1.MethodConnector(
+          name: 'getHistory',
+          params: {
+            'limit': _i1.ParameterDescription(
+              name: 'limit',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i5.ChatEndpoint).getHistory(
+                session,
+                limit: params['limit'],
+              ),
+        ),
+        'deleteHistory': _i1.MethodConnector(
+          name: 'deleteHistory',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i5.ChatEndpoint).deleteHistory(
+                session,
+              ),
+        ),
         'chat': _i1.MethodConnector(
           name: 'chat',
           params: {
@@ -712,7 +742,8 @@ class Endpoints extends _i1.EndpointDispatch {
     );
     modules['serverpod_auth_idp'] = _i13.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i14.Endpoints()
+    modules['serverpod_auth'] = _i14.Endpoints()..initializeEndpoints(server);
+    modules['serverpod_auth_core'] = _i15.Endpoints()
       ..initializeEndpoints(server);
   }
 }

@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:serverpod/serverpod.dart';
 
 class ElevenLabsService {
   final String apiKey;
@@ -22,12 +21,14 @@ class ElevenLabsService {
         'voice_settings': {
           'stability': 0.5,
           'similarity_boost': 0.5,
-        }
+        },
       }),
     );
 
     if (response.statusCode != 200) {
-      throw Exception('ElevenLabs API error: ${response.statusCode} - ${response.body}');
+      throw Exception(
+        'ElevenLabs API error: ${response.statusCode} - ${response.body}',
+      );
     }
 
     return response.bodyBytes;

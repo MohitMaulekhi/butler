@@ -9,12 +9,14 @@ environment:
 dependencies:
   dartantic_ai: ^2.2.0
   github: ^9.25.0
+  google_generative_ai: ^0.4.7
   googleapis: ^13.2.0
   googleapis_auth: ^2.0.0
   http: ^1.6.0
   mailer: ^6.6.0
   serverpod: 3.2.3
   serverpod_auth_idp_server: 3.2.3
+  serverpod_auth_server: ^3.2.3
 
 dev_dependencies:
 

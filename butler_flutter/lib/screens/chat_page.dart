@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'dart:typed_data';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
 
+  @override
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
@@ -23,10 +23,70 @@ class _ChatPageState extends State<ChatPage> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _autoPlayAudio = true;
 
-  void _resetChat() {
-    setState(() {
-      _messages.clear();
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final history = await client.chat.getHistory(limit: 50);
+
+      if (mounted) {
+        setState(() {
+          _messages.clear();
+          _messages.addAll(
+            history.map(
+              (m) => UiChatMessage(
+                text: m.content,
+                isUser: m.isUser,
+              ),
+            ),
+          );
+          _isLoading = false;
+        });
+
+        // Scroll to bottom after a slight delay to let list render
+        Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+      }
+    } catch (e) {
+      debugPrint('Failed to load history: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _resetChat() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+      await client.chat.deleteHistory();
+      if (mounted) {
+        setState(() {
+          _messages.clear();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to clear chat: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to clear chat: $e')),
+        );
+      }
+    }
   }
 
   void _openVoiceModal() async {
@@ -81,7 +141,7 @@ class _ChatPageState extends State<ChatPage> {
           _isLoading = false;
         });
         _scrollToBottom();
-        
+
         if (_autoPlayAudio) {
           _speak(response);
         }
@@ -120,7 +180,10 @@ class _ChatPageState extends State<ChatPage> {
       // Don't block UI
       final bytes = await client.elevenLabs.textToSpeech(text);
       // ByteData to Uint8List
-      final list = bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes);
+      final list = bytes.buffer.asUint8List(
+        bytes.offsetInBytes,
+        bytes.lengthInBytes,
+      );
       await _audioPlayer.play(BytesSource(list));
     } catch (e) {
       debugPrint('Error playing audio: $e');
@@ -138,25 +201,33 @@ class _ChatPageState extends State<ChatPage> {
       children: [
         if (_messages.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
-                  icon: Icon(_autoPlayAudio ? Icons.volume_up : Icons.volume_off),
+                  icon: Icon(
+                    _autoPlayAudio ? Icons.volume_up : Icons.volume_off,
+                  ),
                   onPressed: () {
                     setState(() {
                       _autoPlayAudio = !_autoPlayAudio;
                     });
                   },
-                  tooltip: _autoPlayAudio ? 'Mute Auto-play' : 'Enable Auto-play',
+                  tooltip: _autoPlayAudio
+                      ? 'Mute Auto-play'
+                      : 'Enable Auto-play',
                 ),
                 OutlinedButton.icon(
                   onPressed: _resetChat,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('New Chat'),
+                  icon: const Icon(Icons.delete),
+                  label: const Text('Clear Chat'),
                   style: OutlinedButton.styleFrom(
                     visualDensity: VisualDensity.compact,
+                    foregroundColor: Colors.red,
                   ),
                 ),
               ],
@@ -203,9 +274,12 @@ class _ChatPageState extends State<ChatPage> {
                               )
                             : MarkdownBody(
                                 data: message.text,
-                                styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
-                                  p: const TextStyle(color: Colors.black87),
-                                ),
+                                styleSheet:
+                                    MarkdownStyleSheet.fromTheme(
+                                      Theme.of(context),
+                                    ).copyWith(
+                                      p: const TextStyle(color: Colors.black87),
+                                    ),
                                 selectable: true,
                               ),
                       ),
@@ -230,7 +304,10 @@ class _ChatPageState extends State<ChatPage> {
                   decoration: const InputDecoration(
                     hintText: 'Type a message...',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
                   onSubmitted: (_) => _sendMessage(),
                 ),
@@ -268,6 +345,11 @@ class UiChatMessage {
   });
 
   protocol.ChatMessage toProtocol() {
-    return protocol.ChatMessage(content: text, isUser: isUser);
+    return protocol.ChatMessage(
+      content: text,
+      isUser: isUser,
+      createdAt: DateTime.now(),
+      userId: '',
+    );
   }
 }

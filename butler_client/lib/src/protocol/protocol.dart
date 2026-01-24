@@ -21,8 +21,9 @@ import 'package:butler_client/src/protocol/chat/chat_message.dart' as _i8;
 import 'package:butler_client/src/protocol/tasks/task.dart' as _i9;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _i10;
+import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i11;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
-    as _i11;
+    as _i12;
 export 'calendar/calendar_event.dart';
 export 'calendar/google_calendar_connection.dart';
 export 'chat/chat_message.dart';
@@ -120,6 +121,9 @@ class Protocol extends _i1.SerializationManager {
     try {
       return _i11.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
+    try {
+      return _i12.Protocol().deserialize<T>(data, t);
+    } on _i1.DeserializationTypeNotFoundException catch (_) {}
     return super.deserialize<T>(data, t);
   }
 
@@ -161,6 +165,10 @@ class Protocol extends _i1.SerializationManager {
     }
     className = _i11.Protocol().getClassNameForObject(data);
     if (className != null) {
+      return 'serverpod_auth.$className';
+    }
+    className = _i12.Protocol().getClassNameForObject(data);
+    if (className != null) {
       return 'serverpod_auth_core.$className';
     }
     return null;
@@ -191,9 +199,13 @@ class Protocol extends _i1.SerializationManager {
       data['className'] = dataClassName.substring(19);
       return _i10.Protocol().deserializeByClassName(data);
     }
+    if (dataClassName.startsWith('serverpod_auth.')) {
+      data['className'] = dataClassName.substring(15);
+      return _i11.Protocol().deserializeByClassName(data);
+    }
     if (dataClassName.startsWith('serverpod_auth_core.')) {
       data['className'] = dataClassName.substring(20);
-      return _i11.Protocol().deserializeByClassName(data);
+      return _i12.Protocol().deserializeByClassName(data);
     }
     return super.deserializeByClassName(data);
   }
@@ -212,6 +224,9 @@ class Protocol extends _i1.SerializationManager {
     } catch (_) {}
     try {
       return _i11.Protocol().mapRecordToJson(record);
+    } catch (_) {}
+    try {
+      return _i12.Protocol().mapRecordToJson(record);
     } catch (_) {}
     throw Exception('Unsupported record type ${record.runtimeType}');
   }

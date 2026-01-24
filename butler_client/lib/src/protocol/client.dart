@@ -21,7 +21,8 @@ import 'package:butler_client/src/protocol/chat/chat_message.dart' as _i6;
 import 'dart:typed_data' as _i7;
 import 'package:butler_client/src/protocol/tasks/task.dart' as _i8;
 import 'package:butler_client/src/protocol/greetings/greeting.dart' as _i9;
-import 'protocol.dart' as _i10;
+import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i10;
+import 'protocol.dart' as _i11;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -345,6 +346,21 @@ class EndpointChat extends _i2.EndpointRef {
   @override
   String get name => 'chat';
 
+  /// Fetch chat history for the authenticated user
+  _i3.Future<List<_i6.ChatMessage>> getHistory({required int limit}) =>
+      caller.callServerEndpoint<List<_i6.ChatMessage>>(
+        'chat',
+        'getHistory',
+        {'limit': limit},
+      );
+
+  /// Delete chat history for the authenticated user
+  _i3.Future<void> deleteHistory() => caller.callServerEndpoint<void>(
+    'chat',
+    'deleteHistory',
+    {},
+  );
+
   /// Chat with optional service integrations (GitHub, Travel, etc.).
   _i3.Future<String> chat(
     List<_i6.ChatMessage> messages, {
@@ -470,10 +486,13 @@ class EndpointGreeting extends _i2.EndpointRef {
 class Modules {
   Modules(Client client) {
     serverpod_auth_idp = _i1.Caller(client);
+    auth = _i10.Caller(client);
     serverpod_auth_core = _i4.Caller(client);
   }
 
   late final _i1.Caller serverpod_auth_idp;
+
+  late final _i10.Caller auth;
 
   late final _i4.Caller serverpod_auth_core;
 }
@@ -498,7 +517,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i10.Protocol(),
+         _i11.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -551,6 +570,7 @@ class Client extends _i2.ServerpodClientShared {
   @override
   Map<String, _i2.ModuleEndpointCaller> get moduleLookup => {
     'serverpod_auth_idp': modules.serverpod_auth_idp,
+    'auth': modules.auth,
     'serverpod_auth_core': modules.serverpod_auth_core,
   };
 }

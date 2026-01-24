@@ -9,7 +9,47 @@ import '../services/integration_manager.dart';
 /// This is the endpoint that provides personal assistant functionality using the
 /// Google Gemini API with optional service integrations.
 class ChatEndpoint extends Endpoint {
+  /// Fetch chat history for the authenticated user
+  Future<List<ChatMessage>> getHistory(
+    Session session, {
+    int limit = 50,
+  }) async {
+    // Use userIdentifier as String (UUID)
+    final userId = session.authenticated?.userIdentifier.toString();
+    if (userId == null) {
+      return [];
+    }
+
+    // Fetch newest first
+    final messages = await ChatMessage.db.find(
+      session,
+      where: (t) => t.userId.equals(userId),
+      orderBy: (t) => t.createdAt,
+      orderDescending: true,
+      limit: limit,
+    );
+
+    // Return oldest first for the UI to append easily (or UI can handle sorting)
+    // Usually UI expects chronological for list building?
+    // ChatPage appends. If we return history, we probably want chronological.
+    return messages.reversed.toList();
+  }
+
+  /// Delete chat history for the authenticated user
+  Future<void> deleteHistory(Session session) async {
+    final userId = session.authenticated?.userIdentifier.toString();
+    if (userId == null) {
+      return;
+    }
+
+    await ChatMessage.db.deleteWhere(
+      session,
+      where: (t) => t.userId.equals(userId),
+    );
+  }
+
   /// Chat with optional service integrations (GitHub, Travel, etc.).
+
   Future<String> chat(
     Session session,
     List<ChatMessage> messages, {
@@ -18,8 +58,9 @@ class ChatEndpoint extends Endpoint {
     String? weatherKey,
     bool enableIntegrations = false,
   }) async {
-    // Authentication is optional for chat
-    if (!session.isUserSignedIn) {
+    // Authenticated user ID required for persistence
+    final userId = session.authenticated?.userIdentifier.toString();
+    if (userId == null) {
       throw Exception('User is not signed in');
     }
 
@@ -27,10 +68,37 @@ class ChatEndpoint extends Endpoint {
       return '';
     }
 
+    // 1. Identify and Save User Message
+    // We assume the last message in the list is the new one from the user
+    final lastUserMessage = messages.last;
+    if (lastUserMessage.isUser) {
+      // Create a fresh object to enforce server-side timestamp and userId
+      final validUserMsg = ChatMessage(
+        content: lastUserMessage.content,
+        isUser: true,
+        createdAt: DateTime.now(),
+        userId: userId,
+      );
+      await ChatMessage.db.insertRow(session, validUserMsg);
+    }
+
     final geminiApiKey = session.passwords['geminiApiKey'];
     if (geminiApiKey == null) {
       throw Exception('Gemini API key not found');
     }
+
+    // 2. Fetch History from DB for Context (Last 20 messages)
+    // We ignore the 'messages' list for context history to rely on source of truth
+    final history = await ChatMessage.db.find(
+      session,
+      where: (t) => t.userId.equals(userId),
+      orderBy: (t) => t.createdAt,
+      orderDescending: true,
+      limit: 20,
+    );
+
+    // Sort chronological for context building
+    final contextMessages = history.reversed.toList();
 
     // Configure the Dartantic AI agent
     final agent = Agent.forProvider(
@@ -40,11 +108,14 @@ class ChatEndpoint extends Endpoint {
 
     // Build context string from messages
     final contextBuffer = StringBuffer();
-    for (final msg in messages) {
-      contextBuffer.writeln('${msg.isUser ? "User" : "Butler"}: ${msg.content}');
+    for (final msg in contextMessages) {
+      contextBuffer.writeln(
+        '${msg.isUser ? "User" : "Butler"}: ${msg.content}',
+      );
     }
     final fullContext = contextBuffer.toString();
-    final lastMessage = messages.last.content;
+    // lastMessage (string) is used for tool calling content
+    final lastMessage = lastUserMessage.content;
 
     // Simple chat without integrations
     if (!enableIntegrations ||
@@ -56,18 +127,18 @@ class ChatEndpoint extends Endpoint {
     }
 
     if (!enableIntegrations) {
-       session.log('Processing simple chat without integrations');
-       // ... (existing logic for simple chat) ...
-       // Duplicate existing logic for now or refactor? 
-       // The original code had a check: 
-       // if (!enableIntegrations || (githubToken == null ...))
-       // But if I add News, which uses server key, I should allow it if enableIntegrations is true.
+      session.log('Processing simple chat without integrations');
+      // ... (existing logic for simple chat) ...
+      // Duplicate existing logic for now or refactor?
+      // The original code had a check:
+      // if (!enableIntegrations || (githubToken == null ...))
+      // But if I add News, which uses server key, I should allow it if enableIntegrations is true.
     }
-    
+
     // I will refactor slightly to respect enableIntegrations flag primarily.
-    
+
     if (!enableIntegrations) {
-       final systemPrompt =
+      final systemPrompt =
           'You are Butler, a helpful and friendly personal assistant. '
           'You help users with various tasks including answering questions, '
           'providing information, making suggestions, and assisting with daily activities. '
@@ -76,6 +147,18 @@ class ChatEndpoint extends Endpoint {
 
       final prompt = '$systemPrompt\n\nChat History:\n$fullContext';
       final response = await agent.send(prompt);
+
+      // Save Butler response
+      await ChatMessage.db.insertRow(
+        session,
+        ChatMessage(
+          content: response.output,
+          isUser: false,
+          createdAt: DateTime.now(),
+          userId: userId,
+        ),
+      );
+
       return response.output;
     }
 
@@ -84,7 +167,7 @@ class ChatEndpoint extends Endpoint {
     final newsApiKey = session.passwords['newsApiKey'];
     final tavilyApiKey = session.passwords['tavilyApiKey'];
 
-    return await _chatWithTools(
+    final response = await _chatWithTools(
       session,
       agent,
       fullContext,
@@ -95,6 +178,19 @@ class ChatEndpoint extends Endpoint {
       newsApiKey,
       tavilyApiKey,
     );
+
+    // Save Butler response (from tools flow)
+    await ChatMessage.db.insertRow(
+      session,
+      ChatMessage(
+        content: response,
+        isUser: false,
+        createdAt: DateTime.now(),
+        userId: userId,
+      ),
+    );
+
+    return response;
   }
 
   /// Handles chat with tool calling using Gemini's native function calling.
