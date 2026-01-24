@@ -20,6 +20,7 @@ abstract class CalendarEvent
     required this.startTime,
     required this.endTime,
     this.description,
+    required this.userId,
   });
 
   factory CalendarEvent({
@@ -28,6 +29,7 @@ abstract class CalendarEvent
     required DateTime startTime,
     required DateTime endTime,
     String? description,
+    required String userId,
   }) = _CalendarEventImpl;
 
   factory CalendarEvent.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -39,6 +41,7 @@ abstract class CalendarEvent
       ),
       endTime: _i1.DateTimeJsonExtension.fromJson(jsonSerialization['endTime']),
       description: jsonSerialization['description'] as String?,
+      userId: jsonSerialization['userId'] as String,
     );
   }
 
@@ -57,6 +60,8 @@ abstract class CalendarEvent
 
   String? description;
 
+  String userId;
+
   @override
   _i1.Table<int?> get table => t;
 
@@ -69,6 +74,7 @@ abstract class CalendarEvent
     DateTime? startTime,
     DateTime? endTime,
     String? description,
+    String? userId,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -79,6 +85,7 @@ abstract class CalendarEvent
       'startTime': startTime.toJson(),
       'endTime': endTime.toJson(),
       if (description != null) 'description': description,
+      'userId': userId,
     };
   }
 
@@ -91,6 +98,7 @@ abstract class CalendarEvent
       'startTime': startTime.toJson(),
       'endTime': endTime.toJson(),
       if (description != null) 'description': description,
+      'userId': userId,
     };
   }
 
@@ -133,12 +141,14 @@ class _CalendarEventImpl extends CalendarEvent {
     required DateTime startTime,
     required DateTime endTime,
     String? description,
+    required String userId,
   }) : super._(
          id: id,
          title: title,
          startTime: startTime,
          endTime: endTime,
          description: description,
+         userId: userId,
        );
 
   /// Returns a shallow copy of this [CalendarEvent]
@@ -151,6 +161,7 @@ class _CalendarEventImpl extends CalendarEvent {
     DateTime? startTime,
     DateTime? endTime,
     Object? description = _Undefined,
+    String? userId,
   }) {
     return CalendarEvent(
       id: id is int? ? id : this.id,
@@ -158,6 +169,7 @@ class _CalendarEventImpl extends CalendarEvent {
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       description: description is String? ? description : this.description,
+      userId: userId ?? this.userId,
     );
   }
 }
@@ -186,6 +198,11 @@ class CalendarEventUpdateTable extends _i1.UpdateTable<CalendarEventTable> {
     table.description,
     value,
   );
+
+  _i1.ColumnValue<String, String> userId(String value) => _i1.ColumnValue(
+    table.userId,
+    value,
+  );
 }
 
 class CalendarEventTable extends _i1.Table<int?> {
@@ -208,6 +225,10 @@ class CalendarEventTable extends _i1.Table<int?> {
       'description',
       this,
     );
+    userId = _i1.ColumnString(
+      'userId',
+      this,
+    );
   }
 
   late final CalendarEventUpdateTable updateTable;
@@ -220,6 +241,8 @@ class CalendarEventTable extends _i1.Table<int?> {
 
   late final _i1.ColumnString description;
 
+  late final _i1.ColumnString userId;
+
   @override
   List<_i1.Column> get columns => [
     id,
@@ -227,6 +250,7 @@ class CalendarEventTable extends _i1.Table<int?> {
     startTime,
     endTime,
     description,
+    userId,
   ];
 }
 

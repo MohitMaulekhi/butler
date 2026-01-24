@@ -4,3 +4,4 @@ fields:
   title: String
   isCompleted: bool
   createdAt: DateTime
+  userId: String

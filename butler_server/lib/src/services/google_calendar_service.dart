@@ -192,6 +192,7 @@ class GoogleCalendarService {
       if (event.start?.dateTime != null && event.end?.dateTime != null) {
         butlerEvents.add(
           CalendarEvent(
+            userId: userId,
             title: event.summary ?? 'Untitled Event',
             startTime: event.start!.dateTime!,
             endTime: event.end!.dateTime!,

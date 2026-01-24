@@ -17,17 +17,19 @@ import '../endpoints/calendar_endpoint.dart' as _i4;
 import '../endpoints/chat_endpoint.dart' as _i5;
 import '../endpoints/eleven_labs_endpoint.dart' as _i6;
 import '../endpoints/news_endpoint.dart' as _i7;
-import '../endpoints/task_endpoint.dart' as _i8;
-import '../greetings/greeting_endpoint.dart' as _i9;
+import '../endpoints/profile_endpoint.dart' as _i8;
+import '../endpoints/task_endpoint.dart' as _i9;
+import '../greetings/greeting_endpoint.dart' as _i10;
 import 'package:butler_server/src/generated/calendar/calendar_event.dart'
-    as _i10;
-import 'package:butler_server/src/generated/chat/chat_message.dart' as _i11;
-import 'package:butler_server/src/generated/tasks/task.dart' as _i12;
+    as _i11;
+import 'package:butler_server/src/generated/chat/chat_message.dart' as _i12;
+import 'package:butler_server/src/generated/user_profile.dart' as _i13;
+import 'package:butler_server/src/generated/tasks/task.dart' as _i14;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
-    as _i13;
-import 'package:serverpod_auth_server/serverpod_auth_server.dart' as _i14;
-import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i15;
+import 'package:serverpod_auth_server/serverpod_auth_server.dart' as _i16;
+import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+    as _i17;
 
 class Endpoints extends _i1.EndpointDispatch {
   @override
@@ -69,13 +71,19 @@ class Endpoints extends _i1.EndpointDispatch {
           'news',
           null,
         ),
-      'task': _i8.TaskEndpoint()
+      'profile': _i8.ProfileEndpoint()
+        ..initialize(
+          server,
+          'profile',
+          null,
+        ),
+      'task': _i9.TaskEndpoint()
         ..initialize(
           server,
           'task',
           null,
         ),
-      'greeting': _i9.GreetingEndpoint()
+      'greeting': _i10.GreetingEndpoint()
         ..initialize(
           server,
           'greeting',
@@ -285,7 +293,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'event': _i1.ParameterDescription(
               name: 'event',
-              type: _i1.getType<_i10.CalendarEvent>(),
+              type: _i1.getType<_i11.CalendarEvent>(),
               nullable: false,
             ),
           },
@@ -329,7 +337,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'event': _i1.ParameterDescription(
               name: 'event',
-              type: _i1.getType<_i10.CalendarEvent>(),
+              type: _i1.getType<_i11.CalendarEvent>(),
               nullable: false,
             ),
           },
@@ -447,7 +455,7 @@ class Endpoints extends _i1.EndpointDispatch {
             ),
             'event': _i1.ParameterDescription(
               name: 'event',
-              type: _i1.getType<_i10.CalendarEvent>(),
+              type: _i1.getType<_i11.CalendarEvent>(),
               nullable: false,
             ),
           },
@@ -521,21 +529,61 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'messages': _i1.ParameterDescription(
               name: 'messages',
-              type: _i1.getType<List<_i11.ChatMessage>>(),
+              type: _i1.getType<List<_i12.ChatMessage>>(),
               nullable: false,
+            ),
+            'notionToken': _i1.ParameterDescription(
+              name: 'notionToken',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'splitwiseKey': _i1.ParameterDescription(
+              name: 'splitwiseKey',
+              type: _i1.getType<String?>(),
+              nullable: true,
             ),
             'githubToken': _i1.ParameterDescription(
               name: 'githubToken',
               type: _i1.getType<String?>(),
               nullable: true,
             ),
-            'amadeusKey': _i1.ParameterDescription(
-              name: 'amadeusKey',
+            'trelloKey': _i1.ParameterDescription(
+              name: 'trelloKey',
               type: _i1.getType<String?>(),
               nullable: true,
             ),
-            'weatherKey': _i1.ParameterDescription(
-              name: 'weatherKey',
+            'trelloToken': _i1.ParameterDescription(
+              name: 'trelloToken',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'slackToken': _i1.ParameterDescription(
+              name: 'slackToken',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'googleAccessToken': _i1.ParameterDescription(
+              name: 'googleAccessToken',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'zoomToken': _i1.ParameterDescription(
+              name: 'zoomToken',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'alphaVantageKey': _i1.ParameterDescription(
+              name: 'alphaVantageKey',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'newsApiKey': _i1.ParameterDescription(
+              name: 'newsApiKey',
+              type: _i1.getType<String?>(),
+              nullable: true,
+            ),
+            'wolframAppId': _i1.ParameterDescription(
+              name: 'wolframAppId',
               type: _i1.getType<String?>(),
               nullable: true,
             ),
@@ -552,9 +600,17 @@ class Endpoints extends _i1.EndpointDispatch {
               ) async => (endpoints['chat'] as _i5.ChatEndpoint).chat(
                 session,
                 params['messages'],
+                notionToken: params['notionToken'],
+                splitwiseKey: params['splitwiseKey'],
                 githubToken: params['githubToken'],
-                amadeusKey: params['amadeusKey'],
-                weatherKey: params['weatherKey'],
+                trelloKey: params['trelloKey'],
+                trelloToken: params['trelloToken'],
+                slackToken: params['slackToken'],
+                googleAccessToken: params['googleAccessToken'],
+                zoomToken: params['zoomToken'],
+                alphaVantageKey: params['alphaVantageKey'],
+                newsApiKey: params['newsApiKey'],
+                wolframAppId: params['wolframAppId'],
                 enableIntegrations: params['enableIntegrations'],
               ),
         ),
@@ -600,8 +656,8 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'country': _i1.ParameterDescription(
               name: 'country',
-              type: _i1.getType<String>(),
-              nullable: false,
+              type: _i1.getType<String?>(),
+              nullable: true,
             ),
             'category': _i1.ParameterDescription(
               name: 'category',
@@ -646,6 +702,41 @@ class Endpoints extends _i1.EndpointDispatch {
         ),
       },
     );
+    connectors['profile'] = _i1.EndpointConnector(
+      name: 'profile',
+      endpoint: endpoints['profile']!,
+      methodConnectors: {
+        'getProfile': _i1.MethodConnector(
+          name: 'getProfile',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['profile'] as _i8.ProfileEndpoint)
+                  .getProfile(session),
+        ),
+        'updateProfile': _i1.MethodConnector(
+          name: 'updateProfile',
+          params: {
+            'profile': _i1.ParameterDescription(
+              name: 'profile',
+              type: _i1.getType<_i13.UserProfile>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['profile'] as _i8.ProfileEndpoint).updateProfile(
+                    session,
+                    params['profile'],
+                  ),
+        ),
+      },
+    );
     connectors['task'] = _i1.EndpointConnector(
       name: 'task',
       endpoint: endpoints['task']!,
@@ -655,7 +746,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'task': _i1.ParameterDescription(
               name: 'task',
-              type: _i1.getType<_i12.Task>(),
+              type: _i1.getType<_i14.Task>(),
               nullable: false,
             ),
           },
@@ -663,7 +754,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['task'] as _i8.TaskEndpoint).addTask(
+              ) async => (endpoints['task'] as _i9.TaskEndpoint).addTask(
                 session,
                 params['task'],
               ),
@@ -676,14 +767,14 @@ class Endpoints extends _i1.EndpointDispatch {
                 _i1.Session session,
                 Map<String, dynamic> params,
               ) async =>
-                  (endpoints['task'] as _i8.TaskEndpoint).listTasks(session),
+                  (endpoints['task'] as _i9.TaskEndpoint).listTasks(session),
         ),
         'updateTask': _i1.MethodConnector(
           name: 'updateTask',
           params: {
             'task': _i1.ParameterDescription(
               name: 'task',
-              type: _i1.getType<_i12.Task>(),
+              type: _i1.getType<_i14.Task>(),
               nullable: false,
             ),
           },
@@ -691,7 +782,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['task'] as _i8.TaskEndpoint).updateTask(
+              ) async => (endpoints['task'] as _i9.TaskEndpoint).updateTask(
                 session,
                 params['task'],
               ),
@@ -701,7 +792,7 @@ class Endpoints extends _i1.EndpointDispatch {
           params: {
             'task': _i1.ParameterDescription(
               name: 'task',
-              type: _i1.getType<_i12.Task>(),
+              type: _i1.getType<_i14.Task>(),
               nullable: false,
             ),
           },
@@ -709,7 +800,7 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['task'] as _i8.TaskEndpoint).deleteTask(
+              ) async => (endpoints['task'] as _i9.TaskEndpoint).deleteTask(
                 session,
                 params['task'],
               ),
@@ -733,17 +824,17 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['greeting'] as _i9.GreetingEndpoint).hello(
+              ) async => (endpoints['greeting'] as _i10.GreetingEndpoint).hello(
                 session,
                 params['name'],
               ),
         ),
       },
     );
-    modules['serverpod_auth_idp'] = _i13.Endpoints()
+    modules['serverpod_auth_idp'] = _i15.Endpoints()
       ..initializeEndpoints(server);
-    modules['serverpod_auth'] = _i14.Endpoints()..initializeEndpoints(server);
-    modules['serverpod_auth_core'] = _i15.Endpoints()
+    modules['serverpod_auth'] = _i16.Endpoints()..initializeEndpoints(server);
+    modules['serverpod_auth_core'] = _i17.Endpoints()
       ..initializeEndpoints(server);
   }
 }

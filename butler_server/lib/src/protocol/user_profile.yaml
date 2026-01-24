@@ -1,0 +1,12 @@
+class: UserProfile
+table: user_profile
+fields:
+  userId: String
+  name: String
+  bio: String?
+  goals: String?
+  preferences: String?
+  phoneNumber: String?
+  timezone: String?
+  dateOfBirth: DateTime?
+  location: String?

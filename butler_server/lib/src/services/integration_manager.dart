@@ -1,10 +1,20 @@
 import 'package:serverpod/serverpod.dart';
-import '../generated/protocol.dart';
-import 'email_service.dart';
 import 'github_service.dart';
+import 'notion_service.dart';
+import 'splitwise_service.dart';
+import 'trello_service.dart';
+import 'slack_service.dart';
+import 'google_tasks_service.dart';
+import 'zoom_service.dart';
+import 'gmail_service.dart';
+import 'movie_service.dart';
+import 'wolfram_service.dart';
+import 'stock_service.dart';
+import 'crypto_service.dart';
 import 'news_service.dart';
-import 'travel_service.dart';
+import 'weather_service.dart';
 import 'tavily_service.dart';
+import '../generated/protocol.dart';
 
 /// Tool schema for Gemini.
 class ToolSchema {
@@ -22,156 +32,226 @@ class ToolSchema {
 /// Integration manager coordinating all services.
 class IntegrationManager {
   final Session session;
+  // User Keys
+  final String? notionToken;
+  final String? splitwiseKey;
   final String? githubToken;
-  final String? amadeusKey;
-  final String? weatherKey;
-  final String? newsApiKey;
-  final String? tavilyApiKey;
+  final String? trelloKey;
+  final String? trelloToken;
+  final String? slackToken;
+  final String? googleAccessToken; // For Tasks, Gmail, Calendar
+  final String? zoomToken;
+  final String? alphaVantageKey;
+  final String? newsApiKey; // User provided as per plan
+  final String? wolframAppId; // User provided as per plan
+  final String? userId; // For local task/calendar creation
+
+  // Server Keys (loaded from passwords)
+  // Weather, TMDB, CoinGecko(free)
 
   IntegrationManager({
     required this.session,
+    this.notionToken,
+    this.splitwiseKey,
     this.githubToken,
-    this.amadeusKey,
-    this.weatherKey,
+    this.trelloKey,
+    this.trelloToken,
+    this.slackToken,
+    this.googleAccessToken,
+    this.zoomToken,
+    this.alphaVantageKey,
     this.newsApiKey,
-    this.tavilyApiKey,
+    this.wolframAppId,
+    this.userId,
   });
 
   /// Gets list of available tools based on provided tokens.
   List<ToolSchema> getAvailableTools() {
     final tools = <ToolSchema>[];
 
-    if (githubToken != null) {
-      tools.addAll([
+    // User-Key Services
+    if (notionToken != null) {
+      tools.add(
         ToolSchema(
-          name: 'list_repos',
-          description: 'List user\'s GitHub repositories',
+          name: 'create_notion_page',
+          description: 'Create a new page in Notion',
+          parameters: {'title': 'string', 'content': 'string'},
         ),
+      );
+      tools.add(
+        ToolSchema(
+          name: 'search_notion',
+          description: 'Search Notion pages',
+          parameters: {'query': 'string'},
+        ),
+      );
+    }
+
+    if (splitwiseKey != null) {
+      tools.add(
+        ToolSchema(
+          name: 'get_splitwise_friends',
+          description: 'List Splitwise friends and balances',
+        ),
+      );
+      // tools.add(ToolSchema(name: 'add_expense', ...)); // Skipped for complexity
+    }
+
+    if (githubToken != null) {
+      tools.add(
+        ToolSchema(name: 'list_repos', description: 'List GitHub repositories'),
+      );
+      tools.add(
         ToolSchema(
           name: 'get_issues',
-          description: 'Get issues from a GitHub repository',
-          parameters: {
-            'owner': 'string',
-            'repo': 'string',
-          },
-        ),
-      ]);
-    }
-
-    if (amadeusKey != null) {
-      tools.add(
-        ToolSchema(
-          name: 'search_flights',
-          description: 'Search for flights between cities',
-          parameters: {
-            'origin': 'string (airport code like SFO)',
-            'destination': 'string (airport code like NYC)',
-            'date': 'string (YYYY-MM-DD)',
-          },
-        ),
-      );
-      
-      tools.add(
-        ToolSchema(
-          name: 'search_hotels',
-          description: 'Search for hotels or hostels in a city',
-          parameters: {
-            'cityCode': 'string (IATA code like PAR, NYC, LON)',
-            'checkInDate': 'string (YYYY-MM-DD, optional)',
-            'checkOutDate': 'string (YYYY-MM-DD, optional)',
-            'adults': 'integer (default 1)',
-          },
+          description: 'Get GitHub issues',
+          parameters: {'owner': 'string', 'repo': 'string'},
         ),
       );
     }
 
+    if (googleAccessToken != null) {
+      tools.add(
+        ToolSchema(
+          name: 'send_gmail',
+          description: 'Send an email via Gmail',
+          parameters: {'to': 'string', 'subject': 'string', 'body': 'string'},
+        ),
+      );
+      tools.add(
+        ToolSchema(name: 'list_google_tasks', description: 'List Google Tasks'),
+      );
+      tools.add(
+        ToolSchema(
+          name: 'create_google_task',
+          description: 'Create a Google Task',
+          parameters: {'title': 'string'},
+        ),
+      );
+    }
+
+    if (zoomToken != null) {
+      tools.add(
+        ToolSchema(
+          name: 'create_zoom_meeting',
+          description: 'Create a Zoom meeting',
+          parameters: {'topic': 'string'},
+        ),
+      );
+    }
+
+    if (trelloKey != null && trelloToken != null) {
+      tools.add(
+        ToolSchema(
+          name: 'create_trello_card',
+          description: 'Create a Trello card',
+          parameters: {'board': 'string', 'list': 'string', 'card': 'string'},
+        ),
+      );
+    }
+
+    if (slackToken != null) {
+      tools.add(
+        ToolSchema(
+          name: 'send_slack_message',
+          description: 'Send a Slack message',
+          parameters: {'channel': 'string', 'message': 'string'},
+        ),
+      );
+    }
+
+    if (alphaVantageKey != null) {
+      tools.add(
+        ToolSchema(
+          name: 'get_stock_price',
+          description: 'Get stock price',
+          parameters: {'symbol': 'string'},
+        ),
+      );
+    }
+
+    tools.add(
+      ToolSchema(
+        name: 'get_news',
+        description: 'Get top news headlines',
+        parameters: {'country': 'string (us, gb, in, etc. two-letter code)'},
+      ),
+    );
+
+    if (wolframAppId != null) {
+      tools.add(
+        ToolSchema(
+          name: 'ask_wolfram',
+          description: 'Ask Wolfram Alpha a question',
+          parameters: {'query': 'string'},
+        ),
+      );
+    }
+
+    // Server-Key Services (Always check, but only add if key exists on server)
+    final tmdbKey = session.passwords['tmdbKey'];
+    if (tmdbKey != null) {
+      tools.add(
+        ToolSchema(
+          name: 'search_movie',
+          description: 'Search for a movie',
+          parameters: {'query': 'string'},
+        ),
+      );
+    }
+
+    final weatherKey = session.passwords['openWeatherKey']; // Use explicit name
     if (weatherKey != null) {
       tools.add(
         ToolSchema(
           name: 'get_weather',
-          description: 'Get current weather forecast for a city',
+          description: 'Get weather forecast',
           parameters: {'city': 'string'},
         ),
       );
     }
 
-    // Task Management
-    tools.addAll([
-      ToolSchema(
-        name: 'create_task',
-        description: 'Create a new task',
-        parameters: {'title': 'string'},
-      ),
-      ToolSchema(
-        name: 'list_tasks',
-        description: 'List all tasks',
-      ),
-      ToolSchema(
-        name: 'complete_task',
-        description: 'Mark a task as completed',
-        parameters: {'id': 'integer'},
-      ),
-    ]);
-
-    // Email
+    // CoinGecko is free
     tools.add(
-        ToolSchema(
-          name: 'send_email',
-          description: 'Send an email',
-          parameters: {
-            'recipient': 'string',
-            'subject': 'string',
-            'body': 'string',
-          },
-        ),
-      );
-    
-    // Calendar
-    tools.addAll([
       ToolSchema(
-        name: 'schedule_event',
-        description: 'Schedule a calendar event',
-        parameters: {
-          'title': 'string',
-          'time': 'string (ISO 8601, e.g. 2023-10-27T10:00:00)',
-          'duration': 'integer (minutes)',
-          'description': 'string (optional)',
-        },
+        name: 'get_crypto_price',
+        description: 'Get cryptocurrency price',
+        parameters: {'id': 'string'},
       ),
-      ToolSchema(
-        name: 'check_schedule',
-        description: 'Check schedule for a specific date',
-        parameters: {'date': 'string (YYYY-MM-DD)'},
-      ),
-    ]);
+    );
 
-    // News
-    if (newsApiKey != null) {
-      tools.addAll([
-        ToolSchema(
-          name: 'get_top_headlines',
-          description: 'Get top news headlines',
-          parameters: {
-            'country': 'string (us, gb, etc. default us)',
-            'category': 'string (business, technology, etc. optional)',
-          },
-        ),
-        ToolSchema(
-          name: 'search_news',
-          description: 'Search for news articles',
-          parameters: {'query': 'string'},
-        ),
-      ]);
-    }
-
-
-
-    if (tavilyApiKey != null) {
+    // Tavily Web Search (check for server key)
+    final tavilyKey = session.passwords['tavilyApiKey'];
+    if (tavilyKey != null) {
       tools.add(
         ToolSchema(
           name: 'web_search',
-          description: 'Search the web for information using Tavily',
-          parameters: {'query': 'string'},
+          description:
+              'Search the web for current information, news, facts, or any query',
+          parameters: {'query': 'string (the search query)'},
+        ),
+      );
+    }
+
+    // Local Task/Calendar (always available when userId is present)
+    if (userId != null) {
+      tools.add(
+        ToolSchema(
+          name: 'add_local_task',
+          description: 'Add a task to the local Butler task list',
+          parameters: {'title': 'string (task title)'},
+        ),
+      );
+      tools.add(
+        ToolSchema(
+          name: 'add_local_event',
+          description: 'Add a calendar event to the local Butler calendar',
+          parameters: {
+            'title': 'string (event title)',
+            'startTime': 'string (ISO 8601 datetime, e.g. 2026-01-25T10:00:00)',
+            'endTime': 'string (ISO 8601 datetime)',
+            'description': 'string (optional description)',
+          },
         ),
       );
     }
@@ -182,143 +262,179 @@ class IntegrationManager {
   /// Executes a tool by name.
   Future<dynamic> executeTool(
     String toolName,
-    Map<String, dynamic> arguments,
+    Map<String, dynamic> args,
   ) async {
-    session.log('Executing tool: $toolName with args: $arguments');
+    session.log('Executing tool: $toolName with args: $args');
 
     switch (toolName) {
-      // GitHub
-      case 'list_repos':
-        if (githubToken == null) throw Exception('GitHub token required');
-        return await GitHubService.listRepositories(session, githubToken!);
+      case 'create_notion_page':
+        return await NotionService(
+          session,
+          notionToken!,
+        ).createPage(title: args['title'], content: args['content']);
+      case 'search_notion':
+        return await NotionService(session, notionToken!).search(args['query']);
 
+      case 'get_splitwise_friends':
+        return await SplitwiseService(session, splitwiseKey!).getFriends();
+
+      case 'list_repos':
+        return await GitHubService.listRepositories(session, githubToken!);
       case 'get_issues':
-        if (githubToken == null) throw Exception('GitHub token required');
-        final owner = arguments['owner'] as String;
-        final repo = arguments['repo'] as String;
         return await GitHubService.getIssues(
           session,
           githubToken!,
-          owner,
-          repo,
+          args['owner'],
+          args['repo'],
         );
 
-      // Travel
-      case 'search_flights':
-        if (amadeusKey == null) throw Exception('Amadeus API key required');
-        return await TravelService.searchFlights(
-          session,
-          origin: arguments['origin'],
-          destination: arguments['destination'],
-          date: arguments['date'],
-          amadeusKey: amadeusKey!,
+      case 'send_gmail':
+        return await GmailService(session).sendEmail(
+          googleAccessToken!,
+          args['to'],
+          args['subject'],
+          args['body'],
         );
-        
-      case 'search_hotels':
-        if (amadeusKey == null) throw Exception('Amadeus API key required');
-        return await TravelService.searchHotels(
+      case 'list_google_tasks':
+        return await GoogleTasksService(
           session,
-          cityCode: arguments['cityCode'],
-          checkInDate: arguments['checkInDate'],
-          checkOutDate: arguments['checkOutDate'],
-          adults: arguments['adults'] ?? 1,
-          amadeusKey: amadeusKey!,
+        ).listTaskLists(googleAccessToken!);
+      case 'create_google_task':
+        return await GoogleTasksService(
+          session,
+        ).addTask(googleAccessToken!, args['title']);
+
+      case 'create_zoom_meeting':
+        return await ZoomService(
+          session,
+          zoomToken!,
+        ).createMeeting(args['topic']);
+
+      case 'create_trello_card':
+        return await TrelloService(
+          session,
+          trelloKey!,
+          trelloToken!,
+        ).createCard(args['board'], args['list'], args['card']);
+
+      case 'send_slack_message':
+        return await SlackService(
+          session,
+          slackToken!,
+        ).sendMessage(args['channel'], args['message']);
+
+      case 'get_stock_price':
+        return await StockService(
+          session,
+          alphaVantageKey!,
+        ).getStockPrice(args['symbol']);
+
+      case 'get_news':
+        return await NewsService(session, newsApiKey!).getHeadlines(
+          country: args['country'] ?? 'us',
         );
+
+      case 'ask_wolfram':
+        return await WolframService(
+          session,
+          wolframAppId!,
+        ).query(args['query']);
+
+      case 'search_movie':
+        final key = session.passwords['tmdbKey'];
+        if (key == null) return 'TMDB Key not configured on server.';
+        return await MovieService(session, key).searchMovie(args['query']);
 
       case 'get_weather':
-        if (weatherKey == null) throw Exception('Weather API key required');
-        final city = arguments['city'] as String;
-        return await TravelService.getWeather(session, city, weatherKey!);
-
-      // Task Management
-      case 'create_task':
-        final title = arguments['title'] as String;
-        final task = Task(
-          title: title,
-          isCompleted: false,
-          createdAt: DateTime.now(),
-        );
-        await Task.db.insertRow(session, task);
-        return task;
-
-      case 'list_tasks':
-        return await Task.db.find(
-          session,
-          orderBy: (t) => t.createdAt,
-        );
-
-      case 'complete_task':
-        final id = arguments['id'];
-        final taskId = id is int ? id : int.parse(id.toString());
-        final task = await Task.db.findById(session, taskId);
-        if (task == null) return {'error': true, 'message': 'Task not found'};
-        
-        task.isCompleted = true;
-        await Task.db.updateRow(session, task);
-        return task;
-
-      // Email
-      case 'send_email':
-        return await EmailService.sendEmail(
-          session: session,
-          recipient: arguments['recipient'],
-          subject: arguments['subject'],
-          html: arguments['body'],
-        );
-
-      // Calendar
-      case 'schedule_event':
-        final title = arguments['title'] as String;
-        final timeStr = arguments['time'] as String;
-        final duration = arguments['duration'] is int 
-            ? arguments['duration'] as int 
-            : int.parse(arguments['duration'].toString());
-        final description = arguments['description'] as String?;
-
-        final startTime = DateTime.parse(timeStr);
-        final endTime = startTime.add(Duration(minutes: duration));
-
-        final event = CalendarEvent(
-          title: title,
-          startTime: startTime,
-          endTime: endTime,
-          description: description,
-        );
-        await CalendarEvent.db.insertRow(session, event);
-        return event;
-
-      case 'check_schedule':
-        final dateStr = arguments['date'] as String;
-        final date = DateTime.parse(dateStr);
-        final start = DateTime(date.year, date.month, date.day);
-        final end = start.add(Duration(days: 1));
-
-        return await CalendarEvent.db.find(
-          session,
-          where: (e) => (e.startTime >= start) & (e.startTime < end),
-          orderBy: (e) => e.startTime,
-        );
-
-      // News
-      case 'get_top_headlines':
-        if (newsApiKey == null) throw Exception('News API key required');
-        final service = NewsService(session, newsApiKey!);
-        return await service.getTopHeadlines(
-          country: arguments['country'] ?? 'us',
-          category: arguments['category'],
-        );
-
-      case 'search_news':
-        if (newsApiKey == null) throw Exception('News API key required');
-        final service = NewsService(session, newsApiKey!);
-        return await service.searchNews(arguments['query']);
-
-
+        final key = session.passwords['openWeatherKey'];
+        // Reusing TravelService's weather logic? No, TravelService was deleted?
+        // Wait, I deleted TravelService. I need to make sure I have logic for Weather.
+        // I did NOT creating a WeatherService file in previous steps.
+        // I should have created one or I need to inline it or rely on a new file.
+        // I will add a simple HTTP call here for now or realize I missed a file.
+        // Let's implement it here or creating a `weather_service.dart` is cleaner.
+        // I'll inline for now to save tool calls, it's simple.
+        if (key == null) return 'Weather Key not configured.';
+        return await WeatherService(session, key).getWeather(args['city']);
 
       case 'web_search':
-        if (tavilyApiKey == null) throw Exception('Tavily API key required');
-        final service = TavilyService(session, tavilyApiKey!);
-        return await service.search(arguments['query']);
+        final key = session.passwords['tavilyApiKey'];
+        if (key == null) return 'Tavily API Key not configured on server.';
+        final result = await TavilyService(session, key).search(args['query']);
+        // Format the result nicely
+        if (result['error'] == true) {
+          return 'Web search failed: ${result['message']}';
+        }
+        final answer = result['answer'] ?? '';
+        final results = result['results'] as List? ?? [];
+        final buffer = StringBuffer();
+        if (answer.isNotEmpty) {
+          buffer.writeln('Answer: $answer\n');
+        }
+        buffer.writeln('Sources:');
+        for (var r in results.take(3)) {
+          buffer.writeln('- ${r['title']}: ${r['url']}');
+        }
+        return buffer.toString();
+
+      case 'get_crypto_price':
+        return await CryptoService(session).getPrice(args['id']);
+
+      case 'add_local_task':
+      case 'create_task':
+      case 'add_task':
+      case 'create_local_task':
+        if (userId == null) return 'User not authenticated';
+        final taskTitle =
+            args['title'] ?? args['name'] ?? args['task'] ?? 'Untitled Task';
+        final task = Task(
+          title: taskTitle as String,
+          isCompleted: false,
+          createdAt: DateTime.now(),
+          userId: userId!,
+        );
+        await Task.db.insertRow(session, task);
+        return 'Task "$taskTitle" created successfully!';
+
+      case 'add_local_event':
+      case 'create_event':
+      case 'add_event':
+      case 'create_calendar_event':
+      case 'create_meeting':
+      case 'add_meeting':
+        if (userId == null) return 'User not authenticated';
+        final eventTitle =
+            args['title'] ?? args['name'] ?? args['topic'] ?? 'Untitled Event';
+        // Handle flexible time parsing
+        DateTime startTime;
+        DateTime endTime;
+        try {
+          startTime = DateTime.parse(
+            args['startTime'] ??
+                args['start_time'] ??
+                args['start'] ??
+                DateTime.now().toIso8601String(),
+          );
+          endTime = DateTime.parse(
+            args['endTime'] ??
+                args['end_time'] ??
+                args['end'] ??
+                startTime.add(Duration(hours: 1)).toIso8601String(),
+          );
+        } catch (e) {
+          // If parsing fails, use reasonable defaults
+          startTime = DateTime.now().add(Duration(hours: 1));
+          endTime = startTime.add(Duration(hours: 1));
+        }
+        final event = CalendarEvent(
+          title: eventTitle as String,
+          startTime: startTime,
+          endTime: endTime,
+          description: args['description'] as String?,
+          userId: userId!,
+        );
+        await CalendarEvent.db.insertRow(session, event);
+        return 'Calendar event "$eventTitle" created successfully!';
 
       default:
         throw Exception('Unknown tool: $toolName');

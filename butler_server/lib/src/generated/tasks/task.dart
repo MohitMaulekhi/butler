@@ -18,6 +18,7 @@ abstract class Task implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     required this.title,
     required this.isCompleted,
     required this.createdAt,
+    required this.userId,
   });
 
   factory Task({
@@ -25,6 +26,7 @@ abstract class Task implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     required String title,
     required bool isCompleted,
     required DateTime createdAt,
+    required String userId,
   }) = _TaskImpl;
 
   factory Task.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -35,6 +37,7 @@ abstract class Task implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       createdAt: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['createdAt'],
       ),
+      userId: jsonSerialization['userId'] as String,
     );
   }
 
@@ -51,6 +54,8 @@ abstract class Task implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
 
   DateTime createdAt;
 
+  String userId;
+
   @override
   _i1.Table<int?> get table => t;
 
@@ -62,6 +67,7 @@ abstract class Task implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
     String? title,
     bool? isCompleted,
     DateTime? createdAt,
+    String? userId,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -71,6 +77,7 @@ abstract class Task implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       'title': title,
       'isCompleted': isCompleted,
       'createdAt': createdAt.toJson(),
+      'userId': userId,
     };
   }
 
@@ -82,6 +89,7 @@ abstract class Task implements _i1.TableRow<int?>, _i1.ProtocolSerialization {
       'title': title,
       'isCompleted': isCompleted,
       'createdAt': createdAt.toJson(),
+      'userId': userId,
     };
   }
 
@@ -123,11 +131,13 @@ class _TaskImpl extends Task {
     required String title,
     required bool isCompleted,
     required DateTime createdAt,
+    required String userId,
   }) : super._(
          id: id,
          title: title,
          isCompleted: isCompleted,
          createdAt: createdAt,
+         userId: userId,
        );
 
   /// Returns a shallow copy of this [Task]
@@ -139,12 +149,14 @@ class _TaskImpl extends Task {
     String? title,
     bool? isCompleted,
     DateTime? createdAt,
+    String? userId,
   }) {
     return Task(
       id: id is int? ? id : this.id,
       title: title ?? this.title,
       isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
+      userId: userId ?? this.userId,
     );
   }
 }
@@ -167,6 +179,11 @@ class TaskUpdateTable extends _i1.UpdateTable<TaskTable> {
         table.createdAt,
         value,
       );
+
+  _i1.ColumnValue<String, String> userId(String value) => _i1.ColumnValue(
+    table.userId,
+    value,
+  );
 }
 
 class TaskTable extends _i1.Table<int?> {
@@ -184,6 +201,10 @@ class TaskTable extends _i1.Table<int?> {
       'createdAt',
       this,
     );
+    userId = _i1.ColumnString(
+      'userId',
+      this,
+    );
   }
 
   late final TaskUpdateTable updateTable;
@@ -194,12 +215,15 @@ class TaskTable extends _i1.Table<int?> {
 
   late final _i1.ColumnDateTime createdAt;
 
+  late final _i1.ColumnString userId;
+
   @override
   List<_i1.Column> get columns => [
     id,
     title,
     isCompleted,
     createdAt,
+    userId,
   ];
 }
 

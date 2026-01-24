@@ -22,15 +22,17 @@ import 'calendar/google_calendar_connection.dart' as _i7;
 import 'chat/chat_message.dart' as _i8;
 import 'greetings/greeting.dart' as _i9;
 import 'tasks/task.dart' as _i10;
+import 'user_profile.dart' as _i11;
 import 'package:butler_server/src/generated/calendar/calendar_event.dart'
-    as _i11;
-import 'package:butler_server/src/generated/chat/chat_message.dart' as _i12;
-import 'package:butler_server/src/generated/tasks/task.dart' as _i13;
+    as _i12;
+import 'package:butler_server/src/generated/chat/chat_message.dart' as _i13;
+import 'package:butler_server/src/generated/tasks/task.dart' as _i14;
 export 'calendar/calendar_event.dart';
 export 'calendar/google_calendar_connection.dart';
 export 'chat/chat_message.dart';
 export 'greetings/greeting.dart';
 export 'tasks/task.dart';
+export 'user_profile.dart';
 
 class Protocol extends _i1.SerializationManagerServer {
   Protocol._();
@@ -76,6 +78,12 @@ class Protocol extends _i1.SerializationManagerServer {
           columnType: _i2.ColumnType.text,
           isNullable: true,
           dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'userId',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
         ),
       ],
       foreignKeys: [],
@@ -278,11 +286,103 @@ class Protocol extends _i1.SerializationManagerServer {
           isNullable: false,
           dartType: 'DateTime',
         ),
+        _i2.ColumnDefinition(
+          name: 'userId',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
       ],
       foreignKeys: [],
       indexes: [
         _i2.IndexDefinition(
           indexName: 'task_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'user_profile',
+      dartName: 'UserProfile',
+      schema: 'public',
+      module: 'butler',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'user_profile_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'userId',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'name',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'bio',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'goals',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'preferences',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'phoneNumber',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'timezone',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'dateOfBirth',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: true,
+          dartType: 'DateTime?',
+        ),
+        _i2.ColumnDefinition(
+          name: 'location',
+          columnType: _i2.ColumnType.text,
+          isNullable: true,
+          dartType: 'String?',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'user_profile_pkey',
           tableSpace: null,
           elements: [
             _i2.IndexElementDefinition(
@@ -345,6 +445,9 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i10.Task) {
       return _i10.Task.fromJson(data) as T;
     }
+    if (t == _i11.UserProfile) {
+      return _i11.UserProfile.fromJson(data) as T;
+    }
     if (t == _i1.getType<_i6.CalendarEvent?>()) {
       return (data != null ? _i6.CalendarEvent.fromJson(data) : null) as T;
     }
@@ -361,9 +464,12 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i1.getType<_i10.Task?>()) {
       return (data != null ? _i10.Task.fromJson(data) : null) as T;
     }
-    if (t == List<_i11.CalendarEvent>) {
+    if (t == _i1.getType<_i11.UserProfile?>()) {
+      return (data != null ? _i11.UserProfile.fromJson(data) : null) as T;
+    }
+    if (t == List<_i12.CalendarEvent>) {
       return (data as List)
-              .map((e) => deserialize<_i11.CalendarEvent>(e))
+              .map((e) => deserialize<_i12.CalendarEvent>(e))
               .toList()
           as T;
     }
@@ -373,14 +479,14 @@ class Protocol extends _i1.SerializationManagerServer {
           )
           as T;
     }
-    if (t == List<_i12.ChatMessage>) {
+    if (t == List<_i13.ChatMessage>) {
       return (data as List)
-              .map((e) => deserialize<_i12.ChatMessage>(e))
+              .map((e) => deserialize<_i13.ChatMessage>(e))
               .toList()
           as T;
     }
-    if (t == List<_i13.Task>) {
-      return (data as List).map((e) => deserialize<_i13.Task>(e)).toList() as T;
+    if (t == List<_i14.Task>) {
+      return (data as List).map((e) => deserialize<_i14.Task>(e)).toList() as T;
     }
     try {
       return _i3.Protocol().deserialize<T>(data, t);
@@ -404,6 +510,7 @@ class Protocol extends _i1.SerializationManagerServer {
       _i8.ChatMessage => 'ChatMessage',
       _i9.Greeting => 'Greeting',
       _i10.Task => 'Task',
+      _i11.UserProfile => 'UserProfile',
       _ => null,
     };
   }
@@ -428,6 +535,8 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'Greeting';
       case _i10.Task():
         return 'Task';
+      case _i11.UserProfile():
+        return 'UserProfile';
     }
     className = _i2.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -468,6 +577,9 @@ class Protocol extends _i1.SerializationManagerServer {
     }
     if (dataClassName == 'Task') {
       return deserialize<_i10.Task>(data['data']);
+    }
+    if (dataClassName == 'UserProfile') {
+      return deserialize<_i11.UserProfile>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
@@ -523,6 +635,8 @@ class Protocol extends _i1.SerializationManagerServer {
         return _i8.ChatMessage.t;
       case _i10.Task:
         return _i10.Task.t;
+      case _i11.UserProfile:
+        return _i11.UserProfile.t;
     }
     return null;
   }

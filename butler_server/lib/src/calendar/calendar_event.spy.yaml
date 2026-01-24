@@ -5,3 +5,4 @@ fields:
   startTime: DateTime
   endTime: DateTime
   description: String?
+  userId: String

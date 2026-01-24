@@ -6,21 +6,14 @@ import 'package:serverpod/serverpod.dart';
 import '../generated/protocol.dart';
 import '../services/integration_manager.dart';
 
-/// This is the endpoint that provides personal assistant functionality using the
-/// Google Gemini API with optional service integrations.
 class ChatEndpoint extends Endpoint {
-  /// Fetch chat history for the authenticated user
   Future<List<ChatMessage>> getHistory(
     Session session, {
     int limit = 50,
   }) async {
-    // Use userIdentifier as String (UUID)
     final userId = session.authenticated?.userIdentifier.toString();
-    if (userId == null) {
-      return [];
-    }
+    if (userId == null) return [];
 
-    // Fetch newest first
     final messages = await ChatMessage.db.find(
       session,
       where: (t) => t.userId.equals(userId),
@@ -29,18 +22,12 @@ class ChatEndpoint extends Endpoint {
       limit: limit,
     );
 
-    // Return oldest first for the UI to append easily (or UI can handle sorting)
-    // Usually UI expects chronological for list building?
-    // ChatPage appends. If we return history, we probably want chronological.
     return messages.reversed.toList();
   }
 
-  /// Delete chat history for the authenticated user
   Future<void> deleteHistory(Session session) async {
     final userId = session.authenticated?.userIdentifier.toString();
-    if (userId == null) {
-      return;
-    }
+    if (userId == null) return;
 
     await ChatMessage.db.deleteWhere(
       session,
@@ -48,47 +35,46 @@ class ChatEndpoint extends Endpoint {
     );
   }
 
-  /// Chat with optional service integrations (GitHub, Travel, etc.).
-
   Future<String> chat(
     Session session,
     List<ChatMessage> messages, {
+    // New Token Parameters
+    String? notionToken,
+    String? splitwiseKey,
     String? githubToken,
-    String? amadeusKey,
-    String? weatherKey,
+    String? trelloKey,
+    String? trelloToken,
+    String? slackToken,
+    String? googleAccessToken, // Gmail, Tasks
+    String? zoomToken,
+    String? alphaVantageKey,
+    String? newsApiKey,
+    String? wolframAppId,
     bool enableIntegrations = false,
   }) async {
-    // Authenticated user ID required for persistence
     final userId = session.authenticated?.userIdentifier.toString();
-    if (userId == null) {
-      throw Exception('User is not signed in');
-    }
+    if (userId == null) throw Exception('User is not signed in');
 
-    if (messages.isEmpty) {
-      return '';
-    }
+    if (messages.isEmpty) return '';
 
-    // 1. Identify and Save User Message
-    // We assume the last message in the list is the new one from the user
+    // Save User Message (last one)
     final lastUserMessage = messages.last;
     if (lastUserMessage.isUser) {
-      // Create a fresh object to enforce server-side timestamp and userId
-      final validUserMsg = ChatMessage(
-        content: lastUserMessage.content,
-        isUser: true,
-        createdAt: DateTime.now(),
-        userId: userId,
+      await ChatMessage.db.insertRow(
+        session,
+        ChatMessage(
+          content: lastUserMessage.content,
+          isUser: true,
+          createdAt: DateTime.now(),
+          userId: userId,
+        ),
       );
-      await ChatMessage.db.insertRow(session, validUserMsg);
     }
 
     final geminiApiKey = session.passwords['geminiApiKey'];
-    if (geminiApiKey == null) {
-      throw Exception('Gemini API key not found');
-    }
+    if (geminiApiKey == null) throw Exception('Gemini API key not found');
 
-    // 2. Fetch History from DB for Context (Last 20 messages)
-    // We ignore the 'messages' list for context history to rely on source of truth
+    // Fetch Context (Last 20)
     final history = await ChatMessage.db.find(
       session,
       where: (t) => t.userId.equals(userId),
@@ -96,17 +82,33 @@ class ChatEndpoint extends Endpoint {
       orderDescending: true,
       limit: 20,
     );
-
-    // Sort chronological for context building
     final contextMessages = history.reversed.toList();
 
-    // Configure the Dartantic AI agent
+    // Fetch User Profile for System Prompt
+    String personalizationContext = "";
+    final profile = await UserProfile.db.findFirstRow(
+      session,
+      where: (t) => t.userId.equals(userId),
+    );
+
+    if (profile != null) {
+      personalizationContext =
+          """
+        User Profile:
+        Name: ${profile.name}
+        Bio: ${profile.bio ?? 'N/A'}
+        Goals: ${profile.goals ?? 'N/A'}
+        Preferences: ${profile.preferences ?? 'N/A'}
+        Location: ${profile.location ?? 'N/A'}
+        Timezone: ${profile.timezone ?? 'N/A'}
+        """;
+    }
+
     final agent = Agent.forProvider(
       GoogleProvider(apiKey: geminiApiKey),
       chatModelName: 'gemini-2.5-flash-lite',
     );
 
-    // Build context string from messages
     final contextBuffer = StringBuffer();
     for (final msg in contextMessages) {
       contextBuffer.writeln(
@@ -114,240 +116,180 @@ class ChatEndpoint extends Endpoint {
       );
     }
     final fullContext = contextBuffer.toString();
-    // lastMessage (string) is used for tool calling content
-    final lastMessage = lastUserMessage.content;
 
-    // Simple chat without integrations
-    if (!enableIntegrations ||
-        (githubToken == null && amadeusKey == null && weatherKey == null)) {
-      // Check if we have server-side keys that enable integrations even if client keys are missing
-      // For now, we only check client keys for short-circuiting, but we should check server keys too.
-      // However, existing logic seems to imply client must provide keys or enable integrations.
-      // If enableIntegrations is true, we proceed even if some keys are null.
-    }
+    // Build integration manager
+    final manager = IntegrationManager(
+      session: session,
+      notionToken: notionToken,
+      splitwiseKey: splitwiseKey,
+      githubToken: githubToken,
+      trelloKey: trelloKey,
+      trelloToken: trelloToken,
+      slackToken: slackToken,
+      googleAccessToken: googleAccessToken,
+      zoomToken: zoomToken,
+      alphaVantageKey: alphaVantageKey,
+      newsApiKey: newsApiKey,
+      wolframAppId: wolframAppId,
+      userId: userId,
+    );
 
-    if (!enableIntegrations) {
-      session.log('Processing simple chat without integrations');
-      // ... (existing logic for simple chat) ...
-      // Duplicate existing logic for now or refactor?
-      // The original code had a check:
-      // if (!enableIntegrations || (githubToken == null ...))
-      // But if I add News, which uses server key, I should allow it if enableIntegrations is true.
-    }
+    final tools = enableIntegrations ? manager.getAvailableTools() : [];
 
-    // I will refactor slightly to respect enableIntegrations flag primarily.
+    session.log('enableIntegrations: $enableIntegrations');
+    session.log('Tools count: ${tools.length}');
+    session.log('userId for tools: $userId');
 
-    if (!enableIntegrations) {
-      final systemPrompt =
-          'You are Butler, a helpful and friendly personal assistant. '
-          'You help users with various tasks including answering questions, '
-          'providing information, making suggestions, and assisting with daily activities. '
-          'Be concise, helpful, and conversational in your responses. '
-          'Always maintain a professional yet warm tone.';
+    // System Prompt with current time
+    final now = DateTime.now();
+    final systemPrompt =
+        'You are Butler, a personal assistant. '
+        'Current date and time: ${now.toIso8601String()} (${now.timeZoneName}). '
+        '$personalizationContext '
+        'Always be helpful, concise, and friendly. '
+        'ALWAYS use tools when the user asks to create tasks, events, or meetings.';
 
+    // If no tools, simple chat
+    if (tools.isEmpty) {
+      session.log('No tools available, using simple chat');
       final prompt = '$systemPrompt\n\nChat History:\n$fullContext';
       final response = await agent.send(prompt);
-
-      // Save Butler response
-      await ChatMessage.db.insertRow(
-        session,
-        ChatMessage(
-          content: response.output,
-          isUser: false,
-          createdAt: DateTime.now(),
-          userId: userId,
-        ),
-      );
-
+      await _saveBotResponse(session, userId, response.output);
       return response.output;
     }
 
-    // Chat with integrations - use function calling
-    // Get server-side keys
-    final newsApiKey = session.passwords['newsApiKey'];
-    final tavilyApiKey = session.passwords['tavilyApiKey'];
+    // Tool usage logic
+    // Build tool definitions
+    final toolDefs = tools
+        .map(
+          (t) => {
+            'name': t.name,
+            'description': t.description,
+            'parameters': t.parameters ?? {},
+          },
+        )
+        .toList();
 
-    final response = await _chatWithTools(
-      session,
-      agent,
-      fullContext,
-      lastMessage,
-      githubToken,
-      amadeusKey,
-      weatherKey,
-      newsApiKey,
-      tavilyApiKey,
-    );
+    final toolPrompt =
+        '''
+$systemPrompt
 
-    // Save Butler response (from tools flow)
+Chat History:
+$fullContext
+
+INTERNAL CAPABILITIES (DO NOT mention these names to user):
+${toolDefs.map((t) => '- ${t['name']}: ${t['description']} | Parameters: ${t['parameters']}').join('\n')}
+
+CRITICAL BEHAVIOR RULES:
+1. NEVER mention tool names, API names, or technical terms to the user. Sound like a helpful human assistant.
+2. NEVER say things like "I'll use the search_movie tool" or "Let me check TMDb" or "I cannot access external sources".
+3. When using capabilities, respond ONLY with JSON: {"tool": "name", "params": {...}}
+4. For tasks/to-dos: use add_local_task
+5. For calendar events/meetings: use add_local_event (ISO 8601 format for times)
+6. For movies/entertainment: use search_movie, fallback to web_search
+7. For current events/facts/real-time info: use web_search
+8. If something fails or returns no results, SILENTLY try web_search as fallback
+
+COMMUNICATION STYLE:
+- Speak naturally like a knowledgeable friend
+- If you can't find something, say "I couldn't find that" NOT "the tool returned no results"
+- If a capability isn't available, offer alternatives naturally: "I can't help with that, but I can..."
+- Be warm, conversational, and helpful
+- NEVER expose internal workings or limitations
+- Suggest related things you CAN do, without mentioning tool names
+
+Current date/time: ${DateTime.now().toIso8601String()}
+''';
+
+    final initialResp = await agent.send(toolPrompt);
+    final text = initialResp.output.trim();
+
+    if (text.contains('{"tool":')) {
+      // Tool call attempt
+      try {
+        String jsonStr = text;
+        if (jsonStr.contains('```json')) {
+          jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
+        } else if (jsonStr.contains('{')) {
+          final start = jsonStr.indexOf('{');
+          final end = jsonStr.lastIndexOf('}');
+          if (start != -1 && end != -1) {
+            jsonStr = jsonStr.substring(start, end + 1);
+          }
+        }
+
+        final jsonMap = jsonDecode(jsonStr);
+        final toolName = jsonMap['tool'];
+        final params = jsonMap['params'];
+
+        session.log('Tool call detected: $toolName');
+        session.log('Tool params: $params');
+
+        // Execute
+        dynamic result;
+        try {
+          result = await manager.executeTool(toolName, params ?? {});
+          session.log('Tool result: $result');
+        } catch (e, stackTrace) {
+          session.log('Tool execution error: $e', level: LogLevel.error);
+          session.log('Stack trace: $stackTrace', level: LogLevel.error);
+          result = 'Error executing $toolName: $e';
+        }
+
+        // Final response with result
+        final finalPrompt =
+            '''
+$systemPrompt
+
+Chat History:
+$fullContext
+
+Tool Used: $toolName
+Result: $result
+
+Provide a final natural response to the user based on this result.
+''';
+        final finalResp = await agent.send(finalPrompt);
+        await _saveBotResponse(session, userId, finalResp.output);
+        return finalResp.output;
+      } catch (e) {
+        session.log('Tool parsing error: $e');
+        // Fallback
+        final response = await agent.send(
+          fullContext,
+        ); // Retry with just context
+        await _saveBotResponse(session, userId, response.output);
+        return response.output;
+      }
+    } else {
+      // Just answer
+      // Usually the LLM might have already answered in 'text' if it said NO.
+      // Or we should re-prompt for direct answer if 'text' was just "NO".
+      if (text.toUpperCase() == 'NO' || text.length < 10) {
+        final directPrompt = '$systemPrompt\n\nChat History:\n$fullContext';
+        final resp = await agent.send(directPrompt);
+        await _saveBotResponse(session, userId, resp.output);
+        return resp.output;
+      }
+
+      await _saveBotResponse(session, userId, text);
+      return text;
+    }
+  }
+
+  Future<void> _saveBotResponse(
+    Session session,
+    String userId,
+    String content,
+  ) async {
     await ChatMessage.db.insertRow(
       session,
       ChatMessage(
-        content: response,
+        content: content,
         isUser: false,
         createdAt: DateTime.now(),
         userId: userId,
       ),
     );
-
-    return response;
-  }
-
-  /// Handles chat with tool calling using Gemini's native function calling.
-  Future<String> _chatWithTools(
-    Session session,
-    Agent agent,
-    String fullContext,
-    String lastMessage,
-    String? githubToken,
-    String? amadeusKey,
-    String? weatherKey,
-    String? newsApiKey,
-    String? tavilyApiKey,
-  ) async {
-    final manager = IntegrationManager(
-      session: session,
-      githubToken: githubToken,
-      amadeusKey: amadeusKey,
-      weatherKey: weatherKey,
-      newsApiKey: newsApiKey,
-      tavilyApiKey: tavilyApiKey,
-    );
-
-    // Get available tools
-    final tools = manager.getAvailableTools();
-
-    if (tools.isEmpty) {
-      session.log('No tools available, falling back to simple chat');
-      final response = await agent.send(fullContext);
-      return response.output;
-    }
-
-    session.log('Available tools: ${tools.map((t) => t.name).join(", ")}');
-
-    // Build tool definitions for Gemini
-    final toolDefinitions = tools.map((tool) {
-      return {
-        'name': tool.name,
-        'description': tool.description,
-        'parameters': tool.parameters ?? {},
-      };
-    }).toList();
-
-    // System prompt
-    final systemPrompt =
-        'You are Butler, a helpful AI assistant with access to tools. '
-        'Use the available tools when appropriate to help the user. '
-        'Available tools: ${toolDefinitions.map((t) => t['name']).join(", ")}. '
-        'Call tools when needed to get accurate, real-time information.';
-
-    final promptWithHistory = '$systemPrompt\n\nChat History:\n$fullContext';
-
-    // Ask Gemini directly: should use a tool?
-    final decisionPrompt =
-        '''
-$promptWithHistory
-
-Available tools:
-${toolDefinitions.map((t) => '- ${t['name']}: ${t['description']}').join('\n')}
-
-Should you use a tool to answer the last user request? 
-Respond with ONLY "YES" or "NO", nothing else.
-''';
-
-    final decisionResponse = await agent.send(decisionPrompt);
-    final decision = decisionResponse.output.trim().toUpperCase();
-
-    session.log('Tool decision: $decision');
-
-    // If no tool needed, give direct answer
-    if (decision != 'YES') {
-      final directResponse = await agent.send(promptWithHistory);
-      return directResponse.output;
-    }
-
-    // Tool needed - extract parameters
-    final toolExtractionPrompt =
-        '''
-$promptWithHistory
-
-Available tools:
-${toolDefinitions.map((t) => '- ${t['name']}: ${t['description']}\n  Parameters: ${t['parameters']}').join('\n')}
-
-Respond with ONLY valid JSON in this format:
-{"tool": "tool_name", "params": {...}}
-
-JSON only, no markdown, no explanation:
-''';
-
-    final toolResponse = await agent.send(toolExtractionPrompt);
-    final toolOutput = toolResponse.output.trim();
-
-    try {
-      // Extract JSON (handle markdown wrappers)
-      var jsonStr = toolOutput;
-      if (jsonStr.contains('```json')) {
-        jsonStr = jsonStr.split('```json')[1].split('```')[0].trim();
-      } else if (jsonStr.contains('```')) {
-        jsonStr = jsonStr.split('```')[1].split('```')[0].trim();
-      }
-
-      session.log('Tool JSON: $jsonStr');
-
-      final toolCall = json.decode(jsonStr) as Map<String, dynamic>;
-      final toolName = toolCall['tool'] as String?;
-      final params = toolCall['params'] as Map<String, dynamic>? ?? {};
-
-      if (toolName == null) {
-        final fallbackResponse = await agent.send(promptWithHistory);
-        return fallbackResponse.output;
-      }
-
-      // Execute tool
-      session.log('Executing: $toolName($params)');
-
-      dynamic result;
-      try {
-        result = await manager.executeTool(toolName, params);
-
-        // Check if result contains an error (from services)
-        if (result is Map && result['error'] == true) {
-          return 'Error: ${result['message']}\n\n'
-              'Please check your API keys in the Profile settings.';
-        }
-
-        if (result is List &&
-            result.isNotEmpty &&
-            result.first is Map &&
-            result.first['error'] == true) {
-          return 'Error: ${result.first['message']}\n\n'
-              'Please check your API keys in the Profile settings.';
-        }
-      } catch (e) {
-        session.log('Tool execution failed: $e', level: LogLevel.error);
-        return 'Sorry, I encountered an error while using the $toolName tool. '
-            'This might be due to invalid API keys or a service issue.\n\n'
-            'Please check your API keys in the Profile settings and try again.';
-      }
-
-      // Format result
-      final formatPrompt =
-          '''
-Chat History:
-$fullContext
-
-Tool used: $toolName
-Result: ${json.encode(result)}
-
-Provide a helpful, natural response using this information.
-''';
-
-      final finalResponse = await agent.send(formatPrompt);
-      return finalResponse.output;
-    } catch (e) {
-      session.log('Tool error: $e', level: LogLevel.error);
-      final fallbackResponse = await agent.send(promptWithHistory);
-      return fallbackResponse.output;
-    }
   }
 }

@@ -20,8 +20,9 @@ import 'package:butler_server/src/generated/calendar/calendar_event.dart'
     as _i5;
 import 'package:butler_server/src/generated/chat/chat_message.dart' as _i6;
 import 'dart:typed_data' as _i7;
-import 'package:butler_server/src/generated/tasks/task.dart' as _i8;
-import 'package:butler_server/src/generated/greetings/greeting.dart' as _i9;
+import 'package:butler_server/src/generated/user_profile.dart' as _i8;
+import 'package:butler_server/src/generated/tasks/task.dart' as _i9;
+import 'package:butler_server/src/generated/greetings/greeting.dart' as _i10;
 import 'package:butler_server/src/generated/protocol.dart';
 import 'package:butler_server/src/generated/endpoints.dart';
 export 'package:serverpod_test/serverpod_test_public_exports.dart';
@@ -141,6 +142,8 @@ class TestEndpoints {
 
   late final _NewsEndpoint news;
 
+  late final _ProfileEndpoint profile;
+
   late final _TaskEndpoint task;
 
   late final _GreetingEndpoint greeting;
@@ -174,6 +177,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     news = _NewsEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    profile = _ProfileEndpoint(
       endpoints,
       serializationManager,
     );
@@ -858,9 +865,17 @@ class _ChatEndpoint {
   _i3.Future<String> chat(
     _i1.TestSessionBuilder sessionBuilder,
     List<_i6.ChatMessage> messages, {
+    String? notionToken,
+    String? splitwiseKey,
     String? githubToken,
-    String? amadeusKey,
-    String? weatherKey,
+    String? trelloKey,
+    String? trelloToken,
+    String? slackToken,
+    String? googleAccessToken,
+    String? zoomToken,
+    String? alphaVantageKey,
+    String? newsApiKey,
+    String? wolframAppId,
     required bool enableIntegrations,
   }) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
@@ -876,9 +891,17 @@ class _ChatEndpoint {
           methodName: 'chat',
           parameters: _i1.testObjectToJson({
             'messages': messages,
+            'notionToken': notionToken,
+            'splitwiseKey': splitwiseKey,
             'githubToken': githubToken,
-            'amadeusKey': amadeusKey,
-            'weatherKey': weatherKey,
+            'trelloKey': trelloKey,
+            'trelloToken': trelloToken,
+            'slackToken': slackToken,
+            'googleAccessToken': googleAccessToken,
+            'zoomToken': zoomToken,
+            'alphaVantageKey': alphaVantageKey,
+            'newsApiKey': newsApiKey,
+            'wolframAppId': wolframAppId,
             'enableIntegrations': enableIntegrations,
           }),
           serializationManager: _serializationManager,
@@ -955,7 +978,7 @@ class _NewsEndpoint {
 
   _i3.Future<String> getTopHeadlines(
     _i1.TestSessionBuilder sessionBuilder, {
-    required String country,
+    String? country,
     String? category,
     required int pageSize,
   }) async {
@@ -1022,6 +1045,78 @@ class _NewsEndpoint {
   }
 }
 
+class _ProfileEndpoint {
+  _ProfileEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _i2.EndpointDispatch _endpointDispatch;
+
+  final _i2.SerializationManager _serializationManager;
+
+  _i3.Future<_i8.UserProfile> getProfile(
+    _i1.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'profile',
+            method: 'getProfile',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'profile',
+          methodName: 'getProfile',
+          parameters: _i1.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i8.UserProfile>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _i3.Future<_i8.UserProfile> updateProfile(
+    _i1.TestSessionBuilder sessionBuilder,
+    _i8.UserProfile profile,
+  ) async {
+    return _i1.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _i1.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'profile',
+            method: 'updateProfile',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'profile',
+          methodName: 'updateProfile',
+          parameters: _i1.testObjectToJson({'profile': profile}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _i3.Future<_i8.UserProfile>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
 class _TaskEndpoint {
   _TaskEndpoint(
     this._endpointDispatch,
@@ -1032,9 +1127,9 @@ class _TaskEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i8.Task> addTask(
+  _i3.Future<_i9.Task> addTask(
     _i1.TestSessionBuilder sessionBuilder,
-    _i8.Task task,
+    _i9.Task task,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -1055,7 +1150,7 @@ class _TaskEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i8.Task>);
+                as _i3.Future<_i9.Task>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1063,7 +1158,7 @@ class _TaskEndpoint {
     });
   }
 
-  _i3.Future<List<_i8.Task>> listTasks(
+  _i3.Future<List<_i9.Task>> listTasks(
     _i1.TestSessionBuilder sessionBuilder,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
@@ -1085,7 +1180,7 @@ class _TaskEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<List<_i8.Task>>);
+                as _i3.Future<List<_i9.Task>>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1093,9 +1188,9 @@ class _TaskEndpoint {
     });
   }
 
-  _i3.Future<_i8.Task> updateTask(
+  _i3.Future<_i9.Task> updateTask(
     _i1.TestSessionBuilder sessionBuilder,
-    _i8.Task task,
+    _i9.Task task,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -1116,7 +1211,7 @@ class _TaskEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i8.Task>);
+                as _i3.Future<_i9.Task>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();
@@ -1126,7 +1221,7 @@ class _TaskEndpoint {
 
   _i3.Future<void> deleteTask(
     _i1.TestSessionBuilder sessionBuilder,
-    _i8.Task task,
+    _i9.Task task,
   ) async {
     return _i1.callAwaitableFunctionAndHandleExceptions(() async {
       var _localUniqueSession =
@@ -1166,7 +1261,7 @@ class _GreetingEndpoint {
 
   final _i2.SerializationManager _serializationManager;
 
-  _i3.Future<_i9.Greeting> hello(
+  _i3.Future<_i10.Greeting> hello(
     _i1.TestSessionBuilder sessionBuilder,
     String name,
   ) async {
@@ -1189,7 +1284,7 @@ class _GreetingEndpoint {
                   _localUniqueSession,
                   _localCallContext.arguments,
                 )
-                as _i3.Future<_i9.Greeting>);
+                as _i3.Future<_i10.Greeting>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

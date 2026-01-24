@@ -30,6 +30,9 @@ class CalendarEndpoint extends Endpoint {
   // ============ Local Calendar Methods ============
 
   Future<CalendarEvent> addEvent(Session session, CalendarEvent event) async {
+    final userId = session.authenticated?.userIdentifier.toString();
+    if (userId == null) throw Exception('User not authenticated');
+    event.userId = userId;
     await CalendarEvent.db.insertRow(session, event);
     return event;
   }
@@ -39,14 +42,21 @@ class CalendarEndpoint extends Endpoint {
     DateTime start,
     DateTime end,
   ) async {
+    final userId = session.authenticated?.userIdentifier.toString();
+    if (userId == null) return [];
+
     return await CalendarEvent.db.find(
       session,
-      where: (e) => (e.startTime >= start) & (e.endTime <= end),
+      where: (e) =>
+          e.userId.equals(userId) & (e.startTime >= start) & (e.endTime <= end),
       orderBy: (e) => e.startTime,
     );
   }
 
   Future<void> deleteEvent(Session session, CalendarEvent event) async {
+    final userId = session.authenticated?.userIdentifier.toString();
+    if (userId == null) throw Exception('User not authenticated');
+    if (event.userId != userId) throw Exception('Unauthorized');
     await CalendarEvent.db.deleteRow(session, event);
   }
 
