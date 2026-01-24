@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:butler_flutter/main.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 
 class NewsPage extends StatefulWidget {
   const NewsPage({super.key});
@@ -14,10 +15,30 @@ class _NewsPageState extends State<NewsPage> {
   List<dynamic>? _articles;
   bool _isLoading = true;
   String? _error;
+  String _currentCountry = 'us';
 
   @override
   void initState() {
     super.initState();
+    _initNews();
+  }
+
+  Future<void> _initNews() async {
+    // 1. Detect Country
+    try {
+      final response = await http.get(Uri.parse('http://ip-api.com/json'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final countryCode = data['countryCode'] as String?;
+        if (countryCode != null && countryCode.isNotEmpty) {
+          _currentCountry = countryCode.toLowerCase();
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to detect country: $e');
+    }
+
+    // 2. Load News
     _loadNews();
   }
 
@@ -28,19 +49,52 @@ class _NewsPageState extends State<NewsPage> {
     });
     try {
       final jsonStr = await client.news.getTopHeadlines(
-        country: 'us',
+        country: _currentCountry,
         pageSize: 50,
       );
       final data = jsonDecode(jsonStr);
 
-      if (data['status'] == 'ok') {
+      // Handle NewsData.io format (uses 'results' and 'status: success')
+      // Also handle NewsAPI format (uses 'articles' and 'status: ok')
+      final status = data['status'];
+
+      if (status == 'error') {
         setState(() {
-          _articles = data['articles'];
+          _error =
+              data['message'] ??
+              data['results']?['message'] ??
+              'Failed to load news';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // NewsData.io uses 'results', NewsAPI uses 'articles'
+      List<dynamic>? articles = data['results'] ?? data['articles'];
+
+      if (articles != null) {
+        // Normalize NewsData.io format to match what UI expects
+        if (data['results'] != null) {
+          articles = articles
+              .map(
+                (a) => {
+                  'title': a['title'],
+                  'description': a['description'],
+                  'urlToImage': a['image_url'], // NewsData.io uses 'image_url'
+                  'url': a['link'], // NewsData.io uses 'link'
+                  'source': {'name': a['source_name'] ?? a['source_id']},
+                },
+              )
+              .toList();
+        }
+
+        setState(() {
+          _articles = articles;
           _isLoading = false;
         });
       } else {
         setState(() {
-          _error = data['message'] ?? 'Failed to load news';
+          _error = 'No news available';
           _isLoading = false;
         });
       }
@@ -86,7 +140,16 @@ class _NewsPageState extends State<NewsPage> {
     }
 
     if (_articles == null || _articles!.isEmpty) {
-      return const Center(child: Text('No news available'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('No news available for $_currentCountry'),
+            const SizedBox(height: 8),
+            const Text('Try refreshing or check server keys.'),
+          ],
+        ),
+      );
     }
 
     return Scaffold(

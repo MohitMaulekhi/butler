@@ -79,6 +79,7 @@ class CalendarPageState extends State<CalendarPage> {
       final endTime = startTime.add(Duration(minutes: durationMinutes));
 
       final event = CalendarEvent(
+        userId: await _getUserId(),
         title: title,
         startTime: startTime,
         endTime: endTime,

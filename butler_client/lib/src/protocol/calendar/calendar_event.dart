@@ -19,6 +19,7 @@ abstract class CalendarEvent implements _i1.SerializableModel {
     required this.startTime,
     required this.endTime,
     this.description,
+    required this.userId,
   });
 
   factory CalendarEvent({
@@ -27,6 +28,7 @@ abstract class CalendarEvent implements _i1.SerializableModel {
     required DateTime startTime,
     required DateTime endTime,
     String? description,
+    required String userId,
   }) = _CalendarEventImpl;
 
   factory CalendarEvent.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -38,6 +40,7 @@ abstract class CalendarEvent implements _i1.SerializableModel {
       ),
       endTime: _i1.DateTimeJsonExtension.fromJson(jsonSerialization['endTime']),
       description: jsonSerialization['description'] as String?,
+      userId: jsonSerialization['userId'] as String,
     );
   }
 
@@ -54,6 +57,8 @@ abstract class CalendarEvent implements _i1.SerializableModel {
 
   String? description;
 
+  String userId;
+
   /// Returns a shallow copy of this [CalendarEvent]
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
@@ -63,6 +68,7 @@ abstract class CalendarEvent implements _i1.SerializableModel {
     DateTime? startTime,
     DateTime? endTime,
     String? description,
+    String? userId,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -73,6 +79,7 @@ abstract class CalendarEvent implements _i1.SerializableModel {
       'startTime': startTime.toJson(),
       'endTime': endTime.toJson(),
       if (description != null) 'description': description,
+      'userId': userId,
     };
   }
 
@@ -91,12 +98,14 @@ class _CalendarEventImpl extends CalendarEvent {
     required DateTime startTime,
     required DateTime endTime,
     String? description,
+    required String userId,
   }) : super._(
          id: id,
          title: title,
          startTime: startTime,
          endTime: endTime,
          description: description,
+         userId: userId,
        );
 
   /// Returns a shallow copy of this [CalendarEvent]
@@ -109,6 +118,7 @@ class _CalendarEventImpl extends CalendarEvent {
     DateTime? startTime,
     DateTime? endTime,
     Object? description = _Undefined,
+    String? userId,
   }) {
     return CalendarEvent(
       id: id is int? ? id : this.id,
@@ -116,6 +126,7 @@ class _CalendarEventImpl extends CalendarEvent {
       startTime: startTime ?? this.startTime,
       endTime: endTime ?? this.endTime,
       description: description is String? ? description : this.description,
+      userId: userId ?? this.userId,
     );
   }
 }

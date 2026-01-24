@@ -1,6 +1,7 @@
 import 'package:butler_client/butler_client.dart';
 import 'package:flutter/material.dart';
-import 'package:butler_flutter/main.dart'; // for client
+import 'package:butler_flutter/main.dart';
+import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart'; // for client
 
 class TasksPage extends StatefulWidget {
   const TasksPage({super.key});
@@ -22,7 +23,7 @@ class TasksPageState extends State<TasksPage> {
   Future<void> loadTasks() async {
     // Only show loading indicator if we don't have tasks yet
     if (_tasks == null) {
-        setState(() => _isLoading = true);
+      setState(() => _isLoading = true);
     }
     try {
       final tasks = await client.task.listTasks();
@@ -45,6 +46,7 @@ class TasksPageState extends State<TasksPage> {
   Future<void> _addTask(String title) async {
     try {
       final task = Task(
+        userId: client.auth.authInfo?.authUserId.toString() ?? '',
         title: title,
         isCompleted: false,
         createdAt: DateTime.now(),
@@ -136,52 +138,52 @@ class TasksPageState extends State<TasksPage> {
         child: _tasks == null || _tasks!.isEmpty
             ? ListView(
                 children: [
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-                    Center(
-                        child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                                const Text('No tasks yet'),
-                                const SizedBox(height: 16),
-                                ElevatedButton(
-                                    onPressed: _showAddDialog,
-                                    child: const Text('Add Task'),
-                                ),
-                            ],
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('No tasks yet'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _showAddDialog,
+                          child: const Text('Add Task'),
                         ),
+                      ],
                     ),
+                  ),
                 ],
-            )
+              )
             : ListView.builder(
-              padding: const EdgeInsets.only(bottom: 80), // Space for FAB
-              itemCount: _tasks!.length,
-              itemBuilder: (context, index) {
-                final task = _tasks![index];
-                return Dismissible(
-                  key: Key(task.id.toString()),
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 16),
-                    child: const Icon(Icons.delete, color: Colors.white),
-                  ),
-                  direction: DismissDirection.endToStart,
-                  onDismissed: (_) => _deleteTask(task),
-                  child: CheckboxListTile(
-                    title: Text(
-                      task.title,
-                      style: TextStyle(
-                        decoration: task.isCompleted
-                            ? TextDecoration.lineThrough
-                            : null,
-                      ),
+                padding: const EdgeInsets.only(bottom: 80), // Space for FAB
+                itemCount: _tasks!.length,
+                itemBuilder: (context, index) {
+                  final task = _tasks![index];
+                  return Dismissible(
+                    key: Key(task.id.toString()),
+                    background: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 16),
+                      child: const Icon(Icons.delete, color: Colors.white),
                     ),
-                    value: task.isCompleted,
-                    onChanged: (_) => _toggleTask(task),
-                  ),
-                );
-              },
-            ),
+                    direction: DismissDirection.endToStart,
+                    onDismissed: (_) => _deleteTask(task),
+                    child: CheckboxListTile(
+                      title: Text(
+                        task.title,
+                        style: TextStyle(
+                          decoration: task.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                      value: task.isCompleted,
+                      onChanged: (_) => _toggleTask(task),
+                    ),
+                  );
+                },
+              ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddDialog,

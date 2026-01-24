@@ -19,10 +19,11 @@ import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
 import 'package:butler_client/src/protocol/calendar/calendar_event.dart' as _i5;
 import 'package:butler_client/src/protocol/chat/chat_message.dart' as _i6;
 import 'dart:typed_data' as _i7;
-import 'package:butler_client/src/protocol/tasks/task.dart' as _i8;
-import 'package:butler_client/src/protocol/greetings/greeting.dart' as _i9;
-import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i10;
-import 'protocol.dart' as _i11;
+import 'package:butler_client/src/protocol/user_profile.dart' as _i8;
+import 'package:butler_client/src/protocol/tasks/task.dart' as _i9;
+import 'package:butler_client/src/protocol/greetings/greeting.dart' as _i10;
+import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i11;
+import 'protocol.dart' as _i12;
 
 /// By extending [EmailIdpBaseEndpoint], the email identity provider endpoints
 /// are made available on the server and enable the corresponding sign-in widget
@@ -337,8 +338,6 @@ class EndpointCalendar extends _i2.EndpointRef {
       );
 }
 
-/// This is the endpoint that provides personal assistant functionality using the
-/// Google Gemini API with optional service integrations.
 /// {@category Endpoint}
 class EndpointChat extends _i2.EndpointRef {
   EndpointChat(_i2.EndpointCaller caller) : super(caller);
@@ -346,7 +345,6 @@ class EndpointChat extends _i2.EndpointRef {
   @override
   String get name => 'chat';
 
-  /// Fetch chat history for the authenticated user
   _i3.Future<List<_i6.ChatMessage>> getHistory({required int limit}) =>
       caller.callServerEndpoint<List<_i6.ChatMessage>>(
         'chat',
@@ -354,28 +352,42 @@ class EndpointChat extends _i2.EndpointRef {
         {'limit': limit},
       );
 
-  /// Delete chat history for the authenticated user
   _i3.Future<void> deleteHistory() => caller.callServerEndpoint<void>(
     'chat',
     'deleteHistory',
     {},
   );
 
-  /// Chat with optional service integrations (GitHub, Travel, etc.).
   _i3.Future<String> chat(
     List<_i6.ChatMessage> messages, {
+    String? notionToken,
+    String? splitwiseKey,
     String? githubToken,
-    String? amadeusKey,
-    String? weatherKey,
+    String? trelloKey,
+    String? trelloToken,
+    String? slackToken,
+    String? googleAccessToken,
+    String? zoomToken,
+    String? alphaVantageKey,
+    String? newsApiKey,
+    String? wolframAppId,
     required bool enableIntegrations,
   }) => caller.callServerEndpoint<String>(
     'chat',
     'chat',
     {
       'messages': messages,
+      'notionToken': notionToken,
+      'splitwiseKey': splitwiseKey,
       'githubToken': githubToken,
-      'amadeusKey': amadeusKey,
-      'weatherKey': weatherKey,
+      'trelloKey': trelloKey,
+      'trelloToken': trelloToken,
+      'slackToken': slackToken,
+      'googleAccessToken': googleAccessToken,
+      'zoomToken': zoomToken,
+      'alphaVantageKey': alphaVantageKey,
+      'newsApiKey': newsApiKey,
+      'wolframAppId': wolframAppId,
       'enableIntegrations': enableIntegrations,
     },
   );
@@ -409,7 +421,7 @@ class EndpointNews extends _i2.EndpointRef {
   String get name => 'news';
 
   _i3.Future<String> getTopHeadlines({
-    required String country,
+    String? country,
     String? category,
     required int pageSize,
   }) => caller.callServerEndpoint<String>(
@@ -431,34 +443,58 @@ class EndpointNews extends _i2.EndpointRef {
 }
 
 /// {@category Endpoint}
+class EndpointProfile extends _i2.EndpointRef {
+  EndpointProfile(_i2.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'profile';
+
+  /// Get the authenticated user's profile. Creates one if it doesn't exist.
+  _i3.Future<_i8.UserProfile> getProfile() =>
+      caller.callServerEndpoint<_i8.UserProfile>(
+        'profile',
+        'getProfile',
+        {},
+      );
+
+  /// Update user profile fields.
+  _i3.Future<_i8.UserProfile> updateProfile(_i8.UserProfile profile) =>
+      caller.callServerEndpoint<_i8.UserProfile>(
+        'profile',
+        'updateProfile',
+        {'profile': profile},
+      );
+}
+
+/// {@category Endpoint}
 class EndpointTask extends _i2.EndpointRef {
   EndpointTask(_i2.EndpointCaller caller) : super(caller);
 
   @override
   String get name => 'task';
 
-  _i3.Future<_i8.Task> addTask(_i8.Task task) =>
-      caller.callServerEndpoint<_i8.Task>(
+  _i3.Future<_i9.Task> addTask(_i9.Task task) =>
+      caller.callServerEndpoint<_i9.Task>(
         'task',
         'addTask',
         {'task': task},
       );
 
-  _i3.Future<List<_i8.Task>> listTasks() =>
-      caller.callServerEndpoint<List<_i8.Task>>(
+  _i3.Future<List<_i9.Task>> listTasks() =>
+      caller.callServerEndpoint<List<_i9.Task>>(
         'task',
         'listTasks',
         {},
       );
 
-  _i3.Future<_i8.Task> updateTask(_i8.Task task) =>
-      caller.callServerEndpoint<_i8.Task>(
+  _i3.Future<_i9.Task> updateTask(_i9.Task task) =>
+      caller.callServerEndpoint<_i9.Task>(
         'task',
         'updateTask',
         {'task': task},
       );
 
-  _i3.Future<void> deleteTask(_i8.Task task) => caller.callServerEndpoint<void>(
+  _i3.Future<void> deleteTask(_i9.Task task) => caller.callServerEndpoint<void>(
     'task',
     'deleteTask',
     {'task': task},
@@ -475,8 +511,8 @@ class EndpointGreeting extends _i2.EndpointRef {
   String get name => 'greeting';
 
   /// Returns a personalized greeting message: "Hello {name}".
-  _i3.Future<_i9.Greeting> hello(String name) =>
-      caller.callServerEndpoint<_i9.Greeting>(
+  _i3.Future<_i10.Greeting> hello(String name) =>
+      caller.callServerEndpoint<_i10.Greeting>(
         'greeting',
         'hello',
         {'name': name},
@@ -486,13 +522,13 @@ class EndpointGreeting extends _i2.EndpointRef {
 class Modules {
   Modules(Client client) {
     serverpod_auth_idp = _i1.Caller(client);
-    auth = _i10.Caller(client);
+    auth = _i11.Caller(client);
     serverpod_auth_core = _i4.Caller(client);
   }
 
   late final _i1.Caller serverpod_auth_idp;
 
-  late final _i10.Caller auth;
+  late final _i11.Caller auth;
 
   late final _i4.Caller serverpod_auth_core;
 }
@@ -517,7 +553,7 @@ class Client extends _i2.ServerpodClientShared {
     bool? disconnectStreamsOnLostInternetConnection,
   }) : super(
          host,
-         _i11.Protocol(),
+         _i12.Protocol(),
          securityContext: securityContext,
          streamingConnectionTimeout: streamingConnectionTimeout,
          connectionTimeout: connectionTimeout,
@@ -532,6 +568,7 @@ class Client extends _i2.ServerpodClientShared {
     chat = EndpointChat(this);
     elevenLabs = EndpointElevenLabs(this);
     news = EndpointNews(this);
+    profile = EndpointProfile(this);
     task = EndpointTask(this);
     greeting = EndpointGreeting(this);
     modules = Modules(this);
@@ -549,6 +586,8 @@ class Client extends _i2.ServerpodClientShared {
 
   late final EndpointNews news;
 
+  late final EndpointProfile profile;
+
   late final EndpointTask task;
 
   late final EndpointGreeting greeting;
@@ -563,6 +602,7 @@ class Client extends _i2.ServerpodClientShared {
     'chat': chat,
     'elevenLabs': elevenLabs,
     'news': news,
+    'profile': profile,
     'task': task,
     'greeting': greeting,
   };

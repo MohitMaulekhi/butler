@@ -3,6 +3,7 @@ import 'package:butler_flutter/main.dart';
 import 'package:butler_flutter/services/google_calendar_service.dart';
 import 'package:butler_flutter/models/google_calendar_status.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
+import 'package:serverpod_auth_shared_flutter/serverpod_auth_shared_flutter.dart';
 
 class GoogleCalendarSettingsScreen extends StatefulWidget {
   const GoogleCalendarSettingsScreen({super.key});
@@ -36,6 +37,10 @@ class _GoogleCalendarSettingsScreenState
 
   Future<void> _loadStatus() async {
     if (!mounted) return;
+
+    final sessionManager = await SessionManager.instance;
+    if (!sessionManager.isSignedIn) return;
+
     setState(() => _isLoading = true);
 
     try {
@@ -55,6 +60,9 @@ class _GoogleCalendarSettingsScreenState
   }
 
   Future<void> _handleConnect() async {
+    final sessionManager = await SessionManager.instance;
+    if (!sessionManager.isSignedIn) return;
+
     setState(() => _isLoading = true);
 
     try {
@@ -102,6 +110,9 @@ class _GoogleCalendarSettingsScreenState
     );
 
     if (confirmed != true || !mounted) return;
+
+    final sessionManager = await SessionManager.instance;
+    if (!sessionManager.isSignedIn) return;
 
     setState(() => _isLoading = true);
 

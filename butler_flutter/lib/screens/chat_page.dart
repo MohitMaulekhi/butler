@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:serverpod_auth_shared_flutter/serverpod_auth_shared_flutter.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -30,6 +31,10 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _loadHistory() async {
+    // Add auth check
+    final sessionManager = await SessionManager.instance;
+    if (!sessionManager.isSignedIn) return;
+
     try {
       setState(() {
         _isLoading = true;
@@ -117,8 +122,23 @@ class _ChatPageState extends State<ChatPage> {
 
     try {
       final githubToken = await _storage.read(key: 'github_token');
-      final amadeusKey = await _storage.read(key: 'amadeus_key');
-      final weatherKey = await _storage.read(key: 'weather_key');
+
+      // New Keys
+      final notionToken = await _storage.read(key: 'notion_token');
+      final splitwiseKey = await _storage.read(key: 'splitwise_key');
+      final trelloKey = await _storage.read(key: 'trello_key');
+      final trelloToken = await _storage.read(key: 'trello_token');
+      final slackToken = await _storage.read(key: 'slack_token');
+      final zoomToken = await _storage.read(key: 'zoom_token');
+      // Server-side keys are managed by the server now (AlphaVantage, News, Wolfram)
+
+      // Google Auth? Use global client auth token?
+      // Usually need specific scope token. For now passing what we have if possible?
+      // Or skip until we have better google auth.
+      // We'll pass null for googleAccessToken for now or try to get it?
+      String? googleAccessToken;
+      // If signed in with Google, we might be able to get accessToken from SocialSignin?
+      // Ignoring Google services for moment unless we have the token stored.
 
       // Convert history to protocol messages
       final history = _messages
@@ -130,8 +150,14 @@ class _ChatPageState extends State<ChatPage> {
       final response = await client.chat.chat(
         history,
         githubToken: githubToken,
-        amadeusKey: amadeusKey,
-        weatherKey: weatherKey,
+        notionToken: notionToken,
+        splitwiseKey: splitwiseKey,
+        trelloKey: trelloKey,
+        trelloToken: trelloToken,
+        slackToken: slackToken,
+        zoomToken: zoomToken,
+        // Server keys (alphaVantage, etc.) are handled by server secrets
+        googleAccessToken: googleAccessToken,
         enableIntegrations: true,
       );
 

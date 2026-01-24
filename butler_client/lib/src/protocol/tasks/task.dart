@@ -18,6 +18,7 @@ abstract class Task implements _i1.SerializableModel {
     required this.title,
     required this.isCompleted,
     required this.createdAt,
+    required this.userId,
   });
 
   factory Task({
@@ -25,6 +26,7 @@ abstract class Task implements _i1.SerializableModel {
     required String title,
     required bool isCompleted,
     required DateTime createdAt,
+    required String userId,
   }) = _TaskImpl;
 
   factory Task.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -35,6 +37,7 @@ abstract class Task implements _i1.SerializableModel {
       createdAt: _i1.DateTimeJsonExtension.fromJson(
         jsonSerialization['createdAt'],
       ),
+      userId: jsonSerialization['userId'] as String,
     );
   }
 
@@ -49,6 +52,8 @@ abstract class Task implements _i1.SerializableModel {
 
   DateTime createdAt;
 
+  String userId;
+
   /// Returns a shallow copy of this [Task]
   /// with some or all fields replaced by the given arguments.
   @_i1.useResult
@@ -57,6 +62,7 @@ abstract class Task implements _i1.SerializableModel {
     String? title,
     bool? isCompleted,
     DateTime? createdAt,
+    String? userId,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -66,6 +72,7 @@ abstract class Task implements _i1.SerializableModel {
       'title': title,
       'isCompleted': isCompleted,
       'createdAt': createdAt.toJson(),
+      'userId': userId,
     };
   }
 
@@ -83,11 +90,13 @@ class _TaskImpl extends Task {
     required String title,
     required bool isCompleted,
     required DateTime createdAt,
+    required String userId,
   }) : super._(
          id: id,
          title: title,
          isCompleted: isCompleted,
          createdAt: createdAt,
+         userId: userId,
        );
 
   /// Returns a shallow copy of this [Task]
@@ -99,12 +108,14 @@ class _TaskImpl extends Task {
     String? title,
     bool? isCompleted,
     DateTime? createdAt,
+    String? userId,
   }) {
     return Task(
       id: id is int? ? id : this.id,
       title: title ?? this.title,
       isCompleted: isCompleted ?? this.isCompleted,
       createdAt: createdAt ?? this.createdAt,
+      userId: userId ?? this.userId,
     );
   }
 }
