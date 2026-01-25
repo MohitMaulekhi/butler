@@ -15,10 +15,10 @@ class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
 
   @override
-  State<ChatPage> createState() => _ChatPageState();
+  State<ChatPage> createState() => ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class ChatPageState extends State<ChatPage> {
   final _storage = const FlutterSecureStorage();
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
@@ -113,6 +113,8 @@ class _ChatPageState extends State<ChatPage> {
       }
     }
   }
+
+  Future<void> reset() => _resetChat();
 
   Future<void> _resetChat() async {
     try {
@@ -322,77 +324,76 @@ class _ChatPageState extends State<ChatPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Custom Header - Only show on mobile or when not in desktop layout
-            if (!isWide)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${_getGreeting()},',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        Text(
-                          _userName,
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.delete_outline,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          onPressed: _resetChat,
-                          tooltip: 'Clear Chat',
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            _autoPlayAudio ? Icons.volume_up : Icons.volume_off,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          onPressed: () async {
-                            if (_autoPlayAudio) {
-                              await _audioPlayer.stop();
-                            }
-                            setState(() {
-                              _autoPlayAudio = !_autoPlayAudio;
-                            });
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.setBool(
-                              'auto_play_audio',
-                              _autoPlayAudio,
-                            );
-                          },
-                          tooltip: _autoPlayAudio ? 'Mute' : 'Unmute',
-                        ),
-                        const SizedBox(width: 8),
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundImage: NetworkImage(
-                            avatarUrls[_selectedAvatarIndex < avatarUrls.length
-                                ? _selectedAvatarIndex
-                                : 0],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+            // Custom Header
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isWide ? 40 : 20,
+                vertical: isWide ? 24 : 16,
               ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_getGreeting()},',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        _userName,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        onPressed: _resetChat,
+                        tooltip: 'Clear Chat',
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          _autoPlayAudio ? Icons.volume_up : Icons.volume_off,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        onPressed: () async {
+                          if (_autoPlayAudio) {
+                            await _audioPlayer.stop();
+                          }
+                          setState(() {
+                            _autoPlayAudio = !_autoPlayAudio;
+                          });
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool(
+                            'auto_play_audio',
+                            _autoPlayAudio,
+                          );
+                        },
+                        tooltip: _autoPlayAudio ? 'Mute' : 'Unmute',
+                      ),
+                      const SizedBox(width: 8),
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundImage: NetworkImage(
+                          avatarUrls[_selectedAvatarIndex < avatarUrls.length
+                              ? _selectedAvatarIndex
+                              : 0],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             // Suggestions - More minimal on desktop
             if (_messages.isEmpty)
               Padding(

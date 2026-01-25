@@ -16,6 +16,7 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   final _tasksKey = GlobalKey<TasksPageState>();
   final _calendarKey = GlobalKey<CalendarPageState>();
+  final _chatKey = GlobalKey<ChatPageState>();
 
   late List<Widget> _pages;
 
@@ -23,7 +24,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _pages = [
-      const ChatPage(),
+      ChatPage(key: _chatKey),
       TasksPage(key: _tasksKey),
       CalendarPage(key: _calendarKey),
       const NewsPage(),
@@ -32,6 +33,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onItemTapped(int index) {
+    if (index == 0 && _currentIndex == 0) {
+      // If already on chat, reset it
+      _chatKey.currentState?.reset();
+    }
+
     setState(() {
       _currentIndex = index;
     });
