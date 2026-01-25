@@ -3,7 +3,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'dart:math' as math;
 import 'package:butler_flutter/main.dart';
-import 'package:serverpod_auth_shared_flutter/serverpod_auth_shared_flutter.dart';
 
 class VoiceModal extends StatefulWidget {
   const VoiceModal({super.key});
@@ -37,14 +36,9 @@ class _VoiceModalState extends State<VoiceModal>
   Future<void> _loadUserInfo() async {
     try {
       final profile = await client.profile.getProfile();
-      final sessionManager = await SessionManager.instance;
       if (mounted) {
         setState(() {
           _userName = profile.name.isNotEmpty ? profile.name : 'User';
-          _userEmail =
-              sessionManager.signedInUser?.email ??
-              sessionManager.signedInUser?.userName ??
-              '';
         });
       }
     } catch (e) {
@@ -148,7 +142,6 @@ class _VoiceModalState extends State<VoiceModal>
       if (_available) {
         setState(() {
           _isListening = true;
-          _text = 'Listening...';
         });
 
         try {
@@ -212,10 +205,13 @@ class _VoiceModalState extends State<VoiceModal>
           // Profile / Context
           Column(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 30,
-                backgroundImage: NetworkImage(
-                  'https://i.pravatar.cc/150?u=a042581f4e29026024d',
+                backgroundColor: Colors.blueAccent.withOpacity(0.3),
+                child: const Icon(
+                  Icons.person,
+                  size: 30,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 16),
@@ -300,15 +296,6 @@ class _VoiceModalState extends State<VoiceModal>
                   ),
           ),
 
-          const SizedBox(height: 32),
-          Text(
-            _isListening
-                ? 'Listening...'
-                : _text == 'Press to speak'
-                ? 'Tap to Speak'
-                : 'Paused',
-            style: const TextStyle(color: Colors.white70, fontSize: 18),
-          ),
           const SizedBox(height: 16),
           // Transcription
           Container(
@@ -331,11 +318,55 @@ class _VoiceModalState extends State<VoiceModal>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Close button
               IconButton(
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close, color: Colors.white, size: 32),
                 style: IconButton.styleFrom(
                   backgroundColor: Colors.red.withOpacity(0.8),
+                  padding: const EdgeInsets.all(16),
+                ),
+              ),
+              const SizedBox(width: 24),
+              // Pause/Resume mic button
+              IconButton(
+                onPressed: _listen,
+                icon: Icon(
+                  _isListening ? Icons.pause : Icons.mic,
+                  color: Colors.white,
+                  size: 36,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: _isListening
+                      ? Colors.orange.withOpacity(0.8)
+                      : Colors.blueAccent.withOpacity(0.8),
+                  padding: const EdgeInsets.all(20),
+                ),
+              ),
+              const SizedBox(width: 24),
+              // Send button
+              IconButton(
+                onPressed:
+                    (_text.isNotEmpty &&
+                        _text != 'Initializing...' &&
+                        _text != 'Press to speak' &&
+                        _text != 'Listening...' &&
+                        !_text.startsWith('Error'))
+                    ? () {
+                        _speech.stop();
+                        Navigator.pop(context, _text);
+                      }
+                    : null,
+                icon: const Icon(Icons.send, color: Colors.white, size: 32),
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                      (_text.isNotEmpty &&
+                          _text != 'Initializing...' &&
+                          _text != 'Press to speak' &&
+                          _text != 'Listening...' &&
+                          !_text.startsWith('Error'))
+                      ? Colors.green.withOpacity(0.8)
+                      : Colors.grey.withOpacity(0.3),
                   padding: const EdgeInsets.all(16),
                 ),
               ),
