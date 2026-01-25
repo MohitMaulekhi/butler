@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'dart:math' as math;
+import 'package:butler_flutter/main.dart';
 
 class VoiceModal extends StatefulWidget {
   const VoiceModal({super.key});
@@ -10,12 +11,14 @@ class VoiceModal extends StatefulWidget {
   State<VoiceModal> createState() => _VoiceModalState();
 }
 
-class _VoiceModalState extends State<VoiceModal> with SingleTickerProviderStateMixin {
+class _VoiceModalState extends State<VoiceModal>
+    with SingleTickerProviderStateMixin {
   late stt.SpeechToText _speech;
   bool _isListening = false;
   String _text = 'Initializing...';
   bool _available = false;
   late AnimationController _animationController;
+  String _userName = 'User';
 
   @override
   void initState() {
@@ -26,8 +29,33 @@ class _VoiceModalState extends State<VoiceModal> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 1000),
     )..repeat();
     _initSpeech();
+    _loadUserInfo();
   }
-  
+
+  Future<void> _loadUserInfo() async {
+    try {
+      final profile = await client.profile.getProfile();
+      if (mounted) {
+        setState(() {
+          _userName = profile.name.isNotEmpty ? profile.name : 'User';
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load user info: $e');
+    }
+  }
+
+  String _getGreeting() {
+    var hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -113,9 +141,8 @@ class _VoiceModalState extends State<VoiceModal> with SingleTickerProviderStateM
       if (_available) {
         setState(() {
           _isListening = true;
-          _text = 'Listening...';
         });
-        
+
         try {
           await _speech.listen(
             onResult: (val) {
@@ -130,11 +157,11 @@ class _VoiceModalState extends State<VoiceModal> with SingleTickerProviderStateM
             listenMode: stt.ListenMode.confirmation,
           );
         } catch (e) {
-           debugPrint('Listen Error: $e');
-           setState(() {
-             _isListening = false;
-             _text = 'Error starting listening: $e';
-           });
+          debugPrint('Listen Error: $e');
+          setState(() {
+            _isListening = false;
+            _text = 'Error starting listening: $e';
+          });
         }
       }
     } else {
@@ -145,123 +172,206 @@ class _VoiceModalState extends State<VoiceModal> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width >= 900;
+
     return Container(
+      height: isDesktop ? 600 : MediaQuery.of(context).size.height * 0.9,
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: const Color(0xFF1E1E1E), // Dark background
+        borderRadius: isDesktop
+            ? BorderRadius.circular(24)
+            : const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 20,
+            offset: isDesktop ? const Offset(0, 10) : const Offset(0, -5),
           ),
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
         children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
+          if (!isDesktop) ...[
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
+            const SizedBox(height: 20),
+          ],
+          const Spacer(),
+
+          // Profile / Context
+          Column(
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.blueAccent.withValues(alpha: 0.3),
+                child: const Icon(
+                  Icons.person,
+                  size: 30,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '${_getGreeting()}, $_userName',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 32),
-          
-          // Creative Voice Visualization
+
+          const Spacer(),
+
+          // Visualization
           SizedBox(
-            height: 80,
-            child: _isListening 
-              ? AnimatedBuilder(
-                  animation: _animationController,
-                  builder: (context, child) {
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: List.generate(5, (index) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Transform.scale(
-                            scaleY: 0.5 + 0.5 * math.sin(_animationController.value * 2 * math.pi + index),
-                            child: Container(
-                              width: 10,
-                              height: 60,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).primaryColor,
-                                borderRadius: BorderRadius.circular(5),
+            height: 120,
+            child: _isListening
+                ? AnimatedBuilder(
+                    animation: _animationController,
+                    builder: (context, child) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: List.generate(7, (index) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: Transform.scale(
+                              scaleY:
+                                  0.5 +
+                                  0.8 *
+                                      math.sin(
+                                        _animationController.value *
+                                                3 *
+                                                math.pi +
+                                            index,
+                                      ),
+                              child: Container(
+                                width: 12,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  color: Colors.blueAccent.withValues(
+                                    alpha: 0.8,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.blueAccent.withValues(
+                                        alpha: 0.5,
+                                      ),
+                                      blurRadius: 10,
+                                      spreadRadius: 2,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      }),
-                    );
-                  },
-                )
-              : Icon(
-                  Icons.mic_none,
-                  size: 60,
-                  color: Colors.grey.shade400,
-                ),
+                          );
+                        }),
+                      );
+                    },
+                  )
+                : Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                    child: const Icon(
+                      Icons.mic_none,
+                      size: 40,
+                      color: Colors.white70,
+                    ),
+                  ),
           ),
-          
-          const SizedBox(height: 24),
-          Text(
-            _isListening ? 'Listening...' : (_text == 'Press to speak' ? 'Tap to Speak' : 'Paused'),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+
           const SizedBox(height: 16),
+          // Transcription
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             constraints: const BoxConstraints(minHeight: 60),
             child: Text(
               _text,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.grey.shade700,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(height: 40),
-          
+
+          const Spacer(),
+
           // Controls
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IconButton.filledTonal(
+              // Close button
+              IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-                iconSize: 24,
-              ),
-              
-              FloatingActionButton.large(
-                onPressed: _available ? _listen : null,
-                backgroundColor: _isListening ? Colors.red : Theme.of(context).primaryColor,
-                elevation: _isListening ? 8 : 4,
-                child: Icon(
-                  _isListening ? Icons.stop : Icons.mic,
-                  color: Colors.white,
-                  size: 32,
+                icon: const Icon(Icons.close, color: Colors.white, size: 32),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.red.withValues(alpha: 0.8),
+                  padding: const EdgeInsets.all(16),
                 ),
               ),
-              
-              IconButton.filled(
-                onPressed: _text.isNotEmpty && 
-                          !_text.startsWith('Initializing') &&
-                          !_text.startsWith('Press') &&
-                          !_text.startsWith('Error')
-                    ? () => Navigator.pop(context, _text)
+              const SizedBox(width: 24),
+              // Pause/Resume mic button
+              IconButton(
+                onPressed: _listen,
+                icon: Icon(
+                  _isListening ? Icons.pause : Icons.mic,
+                  color: Colors.white,
+                  size: 36,
+                ),
+                style: IconButton.styleFrom(
+                  backgroundColor: _isListening
+                      ? Colors.orange.withValues(alpha: 0.8)
+                      : Colors.blueAccent.withValues(alpha: 0.8),
+                  padding: const EdgeInsets.all(20),
+                ),
+              ),
+              const SizedBox(width: 24),
+              // Send button
+              IconButton(
+                onPressed:
+                    (_text.isNotEmpty &&
+                        _text != 'Initializing...' &&
+                        _text != 'Press to speak' &&
+                        _text != 'Listening...' &&
+                        !_text.startsWith('Error'))
+                    ? () {
+                        _speech.stop();
+                        Navigator.pop(context, _text);
+                      }
                     : null,
-                icon: const Icon(Icons.send),
-                iconSize: 24,
+                icon: const Icon(Icons.send, color: Colors.white, size: 32),
+                style: IconButton.styleFrom(
+                  backgroundColor:
+                      (_text.isNotEmpty &&
+                          _text != 'Initializing...' &&
+                          _text != 'Press to speak' &&
+                          _text != 'Listening...' &&
+                          !_text.startsWith('Error'))
+                      ? Colors.green.withValues(alpha: 0.8)
+                      : Colors.grey.withValues(alpha: 0.3),
+                  padding: const EdgeInsets.all(16),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 48),
         ],
       ),
     );

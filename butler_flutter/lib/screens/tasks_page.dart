@@ -133,57 +133,81 @@ class TasksPageState extends State<TasksPage> {
 
     return Scaffold(
       backgroundColor: Colors.transparent, // Inherit background
-      body: RefreshIndicator(
-        onRefresh: loadTasks,
-        child: _tasks == null || _tasks!.isEmpty
-            ? ListView(
-                children: [
-                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('No tasks yet'),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _showAddDialog,
-                          child: const Text('Add Task'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.only(bottom: 80), // Space for FAB
-                itemCount: _tasks!.length,
-                itemBuilder: (context, index) {
-                  final task = _tasks![index];
-                  return Dismissible(
-                    key: Key(task.id.toString()),
-                    background: Container(
-                      color: Colors.red,
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: 16),
-                      child: const Icon(Icons.delete, color: Colors.white),
-                    ),
-                    direction: DismissDirection.endToStart,
-                    onDismissed: (_) => _deleteTask(task),
-                    child: CheckboxListTile(
-                      title: Text(
-                        task.title,
-                        style: TextStyle(
-                          decoration: task.isCompleted
-                              ? TextDecoration.lineThrough
-                              : null,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: RefreshIndicator(
+            onRefresh: loadTasks,
+            child: _tasks == null || _tasks!.isEmpty
+                ? ListView(
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.3,
+                      ),
+                      Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text('No tasks yet'),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _showAddDialog,
+                              child: const Text('Add Task'),
+                            ),
+                          ],
                         ),
                       ),
-                      value: task.isCompleted,
-                      onChanged: (_) => _toggleTask(task),
+                    ],
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 16,
                     ),
-                  );
-                },
-              ),
+                    itemCount: _tasks!.length,
+                    itemBuilder: (context, index) {
+                      final task = _tasks![index];
+                      return Dismissible(
+                        key: Key(task.id.toString()),
+                        background: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 16),
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        direction: DismissDirection.endToStart,
+                        onDismissed: (_) => _deleteTask(task),
+                        child: Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: CheckboxListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            title: Text(
+                              task.title,
+                              style: TextStyle(
+                                decoration: task.isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: task.isCompleted ? Colors.grey : null,
+                              ),
+                            ),
+                            value: task.isCompleted,
+                            onChanged: (_) => _toggleTask(task),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddDialog,
