@@ -6,7 +6,7 @@ class NewsEndpoint extends Endpoint {
     Session session, {
     String? country,
     String? category,
-    int pageSize = 20,
+    int pageSize = 10,
   }) async {
     final newsApiKey = session.passwords['newsApiKey'];
     if (newsApiKey == null) {
@@ -23,7 +23,7 @@ class NewsEndpoint extends Endpoint {
     final result = await service.fetchRawHeadlines(
       country: targetCountry,
       category: category,
-      pageSize: pageSize,
+      pageSize: pageSize > 10 ? 10 : pageSize,
     );
     return result;
   }

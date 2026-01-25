@@ -50,7 +50,7 @@ class NewsService {
           'NewsData.io error: ${response.body}',
           level: LogLevel.error,
         );
-        return '{"status": "error", "message": "${response.reasonPhrase}"}';
+        return response.body;
       }
 
       return response.body;

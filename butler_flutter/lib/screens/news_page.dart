@@ -50,7 +50,7 @@ class _NewsPageState extends State<NewsPage> {
     try {
       final jsonStr = await client.news.getTopHeadlines(
         country: _currentCountry,
-        pageSize: 50,
+        pageSize: 10,
       );
       final data = jsonDecode(jsonStr);
 
