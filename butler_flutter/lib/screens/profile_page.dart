@@ -16,23 +16,36 @@ class ProfilePage extends StatefulWidget {
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
-// ... skipped lines ...
 
 class _ProfilePageState extends State<ProfilePage> {
   final _storage = const FlutterSecureStorage();
-  cli.UserProfile? _userProfile;
 
-  // Personalization Controllers
-  final _nameController = TextEditingController();
-  final _bioController = TextEditingController();
-  final _goalsController = TextEditingController();
+  // State
+  bool _isLoading = true;
+  String? _error;
+  String _userEmail = '';
+  int _selectedAvatarIndex = 0;
+
+  // Profile data
+  cli.UserProfile? _profile;
+  String _name = '';
+  String _bio = '';
+  String _goals = '';
+  String _location = '';
   final _locationController = TextEditingController();
 
-  // API Key Controllers
-  final _controllers = <String, TextEditingController>{};
+  // Integration keys
   final _connectedState = <String, bool>{};
+  final _integrationKeys = {
+    'notion_token': 'Notion Integration Token',
+    'splitwise_key': 'Splitwise API Key',
+    'github_token': 'GitHub Token',
+    'trello_key': 'Trello API Key',
+    'trello_token': 'Trello Token',
+    'slack_token': 'Slack Bot Token',
+    'zoom_token': 'Zoom JWT/OAuth Token',
+  };
 
-  // Help texts for keys
   final _keyHelp = {
     'notion_token':
         '1. Go to notion.so/my-integrations\n2. Create new integration\n3. Copy "Internal Integration Secret"',
@@ -46,154 +59,85 @@ class _ProfilePageState extends State<ProfilePage> {
     'slack_token':
         '1. Create App at api.slack.com\n2. Install to Workspace\n3. Copy "Bot User OAuth Token"',
     'zoom_token':
-        '1. Create Server-to-Server OAuth app on marketplace.zoom.us\n2. Get Account ID, Client ID, Client Secret\n3. Generate Access Token (complex) or use JWT if legacy.',
+        '1. Create Server-to-Server OAuth app on marketplace.zoom.us\n2. Get Account ID, Client ID, Client Secret\n3. Generate Access Token',
   };
-
-  void _showHelpDialog(String label, String helpText) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('How to get $label'),
-        content: Text(helpText),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Define keys and labels
-  final _integrationKeys = {
-    'notion_token': 'Notion Integration Token',
-    'splitwise_key': 'Splitwise API Key',
-    'github_token': 'GitHub Token',
-    'trello_key': 'Trello API Key',
-    'trello_token': 'Trello Token',
-    'slack_token': 'Slack Bot Token',
-    'zoom_token': 'Zoom JWT/OAuth Token',
-  };
-
-  bool _isLoadingProfile = false;
-  String _userEmail = '';
-  int _selectedAvatarIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    // Initialize controllers
-    for (var key in _integrationKeys.keys) {
-      _controllers[key] = TextEditingController();
-      _connectedState[key] = false;
-    }
-
-    _loadData();
+    _initialize();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoadingProfile = true);
+  Future<void> _initialize() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
     try {
-      // Load user email from auth
-      final sessionManager = await SessionManager.instance;
-      if (sessionManager.isSignedIn) {
-        final userInfo = sessionManager.signedInUser;
-        if (mounted) {
-          setState(() {
-            _userEmail = userInfo?.email ?? userInfo?.userName ?? 'No email';
-          });
-        }
+      // Get user email from auth session
+      final authInfo = client.authSessionManager.authInfo;
+      if (authInfo != null) {
+        _userEmail = _profile?.name ?? 'No email';
       }
 
-      await Future.wait([
-        _loadProfile(),
-        _loadApiKeys(),
-        _loadAvatarPreference(),
-      ]);
-    } finally {
-      setState(() => _isLoadingProfile = false);
-    }
-  }
+      // Load profile from server
 
-  Future<void> _loadProfile() async {
-    try {
       final profile = await client.profile.getProfile();
-      if (mounted) {
-        setState(() {
-          _userProfile = profile;
 
-          var name = profile.name;
-          if (name == 'User') {
-            // Try to get name from auth
-            // We can't access sessionManager inside here easily unless we fetch it again,
-            // but we can trust the profile endpoint returned 'User' if it was default.
-            // Actually, let's fetch sessionManager to check.
-          }
-        });
+      _profile = profile;
+      _name = profile.name;
+      _bio = profile.bio ?? '';
+      _goals = profile.goals ?? '';
+      _location = profile.location ?? '';
+      _locationController.text = _location;
 
-        final sessionManager = await SessionManager.instance;
-        String displayName = profile.name;
-        if ((displayName == 'User' || displayName.isEmpty) &&
-            sessionManager.isSignedIn) {
-          displayName = sessionManager.signedInUser?.userName ?? 'User';
-          // If we have a better name, we might want to update the controller to it,
-          // so the user can save it as their profile name.
-        }
-
-        setState(() {
-          _nameController.text = displayName;
-          _bioController.text = profile.bio ?? '';
-          _goalsController.text = profile.goals ?? '';
-          _locationController.text = profile.location ?? '';
-        });
+      // If name is default, try to get from auth
+      if (_name == 'User' && authInfo != null) {
+        _name = _profile?.name ?? 'User';
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load profile: $e')),
-        );
-      }
-    }
-  }
 
-  Future<void> _loadAvatarPreference() async {
-    try {
+      // Load avatar preference
       final prefs = await SharedPreferences.getInstance();
+      _selectedAvatarIndex = prefs.getInt('selected_avatar_index') ?? 0;
+      if (_selectedAvatarIndex >= avatarUrls.length) {
+        _selectedAvatarIndex = 0;
+      }
+
+      // Load API key connection states
+      for (var key in _integrationKeys.keys) {
+        final value = await _storage.read(key: key);
+        _connectedState[key] = value != null && value.isNotEmpty;
+      }
+
       if (mounted) {
         setState(() {
-          final index = prefs.getInt('selected_avatar_index') ?? 0;
-          if (index >= 0 && index < avatarUrls.length) {
-            _selectedAvatarIndex = index;
-          } else {
-            _selectedAvatarIndex = 0;
-          }
+          _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint('Error loading avatar preference: $e');
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _saveProfile() async {
     try {
-      final profile =
-          _userProfile?.copyWith(
-            name: _nameController.text,
-            bio: _bioController.text,
-            goals: _goalsController.text,
-            location: _locationController.text,
-          ) ??
-          cli.UserProfile(
-            userId: client.authSessionManager.authInfo!.authUserId.toString(),
-            name: _nameController.text,
-            bio: _bioController.text,
-            goals: _goalsController.text,
-            location: _locationController.text,
-          );
+      final profile = cli.UserProfile(
+        id: _profile?.id,
+        userId: _profile?.userId ?? '',
+        name: _name,
+        bio: _bio,
+        goals: _goals,
+        location: _location,
+      );
 
-      final updatedProfile = await client.profile.updateProfile(profile);
-      if (mounted) _userProfile = updatedProfile;
+      final updated = await client.profile.updateProfile(profile);
+      _profile = updated;
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -203,19 +147,39 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error saving profile: $e')),
+          SnackBar(content: Text('Error saving: $e')),
         );
       }
     }
   }
 
-  Future<void> _loadApiKeys() async {
-    for (var key in _integrationKeys.keys) {
-      final value = await _storage.read(key: key);
-      if (mounted) {
+  Future<void> _autoDetectLocation() async {
+    try {
+      // Use CORS-friendly API to detect user's location from browser
+      // ipapi.co supports CORS and works in Flutter Web
+      final response = await http.get(Uri.parse('https://ipapi.co/json/'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final city = data['city'] ?? '';
+        final country = data['country_name'] ?? '';
         setState(() {
-          _connectedState[key] = value != null && value.isNotEmpty;
+          _location = '$city, $country';
+          _locationController.text = _location;
         });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Location detected: $_location')),
+          );
+        }
+      } else {
+        throw Exception('Failed to get location');
+      }
+    } catch (e) {
+      debugPrint('Location detection error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not detect location')),
+        );
       }
     }
   }
@@ -226,34 +190,14 @@ class _ProfilePageState extends State<ProfilePage> {
     } else {
       await _storage.write(key: key, value: value);
     }
-    await _loadApiKeys();
-  }
-
-  Future<void> _autoDetectLocation() async {
-    try {
-      final response = await http.get(Uri.parse('http://ip-api.com/json'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final city = data['city'] ?? '';
-        final country = data['country'] ?? '';
-        final loc = '$city, $country';
-        setState(() {
-          _locationController.text = loc;
-        });
-      } else {
-        throw Exception('API Error');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not detect location')),
-        );
-      }
-    }
+    final val = await _storage.read(key: key);
+    setState(() {
+      _connectedState[key] = val != null && val.isNotEmpty;
+    });
   }
 
   void _showSaveDialog(String key, String label) {
-    final controller = _controllers[key]!;
+    final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -274,7 +218,6 @@ class _ProfilePageState extends State<ProfilePage> {
           FilledButton(
             onPressed: () async {
               await _saveApiKey(key, controller.text);
-              controller.clear();
               if (context.mounted) Navigator.pop(context);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -283,6 +226,22 @@ class _ProfilePageState extends State<ProfilePage> {
               }
             },
             child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showHelpDialog(String label, String helpText) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('How to get $label'),
+        content: Text(helpText),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -308,9 +267,7 @@ class _ProfilePageState extends State<ProfilePage> {
               final isSelected = index == _selectedAvatarIndex;
               return GestureDetector(
                 onTap: () async {
-                  setState(() {
-                    _selectedAvatarIndex = index;
-                  });
+                  setState(() => _selectedAvatarIndex = index);
                   final prefs = await SharedPreferences.getInstance();
                   await prefs.setInt('selected_avatar_index', index);
                   if (context.mounted) Navigator.pop(context);
@@ -331,29 +288,12 @@ class _ProfilePageState extends State<ProfilePage> {
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          width: 80,
-                          height: 80,
-                          color: Colors.grey[300],
-                          child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 80,
-                          height: 80,
-                          color: Colors.grey[300],
-                          child: Icon(
-                            Icons.person,
-                            size: 40,
-                            color: Colors.grey[600],
-                          ),
-                        );
-                      },
+                      errorBuilder: (_, __, _) => Container(
+                        width: 80,
+                        height: 80,
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.person, size: 40),
+                      ),
                     ),
                   ),
                 ),
@@ -371,12 +311,46 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  IconData _getIconForIntegration(String key) {
+    if (key.contains('github')) return Icons.code;
+    if (key.contains('slack')) return Icons.work;
+    if (key.contains('notion')) return Icons.note;
+    if (key.contains('zoom')) return Icons.video_call;
+    if (key.contains('trello')) return Icons.dashboard;
+    if (key.contains('split')) return Icons.attach_money;
+    return Icons.extension;
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_isLoadingProfile) {
+    final theme = Theme.of(context);
+
+    if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    final theme = Theme.of(context);
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error loading profile', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(_error!, textAlign: TextAlign.center),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _initialize,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
@@ -401,7 +375,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Profile Card
-                  // Profile Card
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -416,26 +389,21 @@ class _ProfilePageState extends State<ProfilePage> {
                             children: [
                               ClipOval(
                                 child: Image.network(
-                                  avatarUrls[_selectedAvatarIndex <
-                                          avatarUrls.length
-                                      ? _selectedAvatarIndex
-                                      : 0],
+                                  avatarUrls[_selectedAvatarIndex],
                                   width: 60,
                                   height: 60,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      width: 60,
-                                      height: 60,
-                                      color: theme.colorScheme.primary
-                                          .withOpacity(0.2),
-                                      child: Icon(
-                                        Icons.person,
-                                        size: 30,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                    );
-                                  },
+                                  errorBuilder: (_, _, ___) => Container(
+                                    width: 60,
+                                    height: 60,
+                                    color: theme.colorScheme.primary
+                                        .withOpacity(0.2),
+                                    child: Icon(
+                                      Icons.person,
+                                      size: 30,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
                                 ),
                               ),
                               Positioned(
@@ -463,9 +431,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _nameController.text.isEmpty
-                                    ? 'User'
-                                    : _nameController.text,
+                                _name.isEmpty ? 'User' : _name,
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -492,53 +458,125 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: _nameController,
+
+                  TextFormField(
+                    initialValue: _name,
+                    style: TextStyle(color: theme.colorScheme.onSurface),
                     decoration: InputDecoration(
                       labelText: 'Display Name',
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       prefixIcon: const Icon(Icons.person),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerLow,
                     ),
+                    onChanged: (v) => _name = v,
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: _bioController,
+
+                  TextFormField(
+                    initialValue: _bio,
+                    style: TextStyle(color: theme.colorScheme.onSurface),
                     decoration: InputDecoration(
                       labelText: 'Bio',
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       prefixIcon: const Icon(Icons.info_outline),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerLow,
                     ),
                     maxLines: 2,
+                    onChanged: (v) => _bio = v,
                   ),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: _goalsController,
+
+                  TextFormField(
+                    initialValue: _goals,
+                    style: TextStyle(color: theme.colorScheme.onSurface),
                     decoration: InputDecoration(
                       labelText: 'Goals',
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.outline,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: theme.colorScheme.primary,
+                          width: 2,
+                        ),
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                       prefixIcon: const Icon(Icons.flag),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerLow,
                     ),
                     maxLines: 2,
+                    onChanged: (v) => _goals = v,
                   ),
                   const SizedBox(height: 12),
+
                   Row(
                     children: [
                       Expanded(
-                        child: TextField(
+                        child: TextFormField(
                           controller: _locationController,
+                          style: TextStyle(color: theme.colorScheme.onSurface),
                           decoration: InputDecoration(
                             labelText: 'Location',
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: theme.colorScheme.outline,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: theme.colorScheme.primary,
+                                width: 2,
+                              ),
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             prefixIcon: const Icon(Icons.location_on),
+                            filled: true,
+                            fillColor: theme.colorScheme.surfaceContainerLow,
                           ),
+                          onChanged: (v) => _location = v,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -550,6 +588,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                   const SizedBox(height: 16),
+
                   Align(
                     alignment: Alignment.centerRight,
                     child: FilledButton(
@@ -559,7 +598,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Integrations
+                  // Connected Services
                   Text(
                     'Connected Services',
                     style: theme.textTheme.titleMedium?.copyWith(
@@ -567,6 +606,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 16),
+
                   Container(
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerLow,
@@ -606,26 +646,15 @@ class _ProfilePageState extends State<ProfilePage> {
                                 children: [
                                   IconButton(
                                     icon: const Icon(Icons.info_outline),
-                                    onPressed: () {
-                                      final helpText =
-                                          _keyHelp[key] ??
-                                          'No instructions available.';
-                                      _showHelpDialog(label, helpText);
-                                    },
+                                    onPressed: () => _showHelpDialog(
+                                      label,
+                                      _keyHelp[key] ?? 'No instructions',
+                                    ),
                                   ),
                                   Switch(
                                     value: isConnected,
-                                    onChanged: (val) {
-                                      if (val) {
-                                        _showSaveDialog(key, label);
-                                      } else {
-                                        // Make user clear it explicitly or handle disconnect
-                                        _showSaveDialog(
-                                          key,
-                                          label,
-                                        ); // For now just re-open to edit/clear
-                                      }
-                                    },
+                                    onChanged: (_) =>
+                                        _showSaveDialog(key, label),
                                     activeColor: theme.colorScheme.primary,
                                   ),
                                 ],
@@ -645,11 +674,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 32),
+
+                  // Action Buttons
                   FilledButton.tonalIcon(
                     onPressed: () async {
                       await _storage.deleteAll();
-                      await _loadApiKeys();
-                      if (context.mounted) {
+                      for (var key in _integrationKeys.keys) {
+                        _connectedState[key] = false;
+                      }
+                      setState(() {});
+                      if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('All API keys cleared')),
                         );
@@ -662,6 +696,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ),
                   const SizedBox(height: 12),
+
                   FilledButton.icon(
                     onPressed: () async {
                       try {
@@ -694,27 +729,5 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       ),
     );
-  }
-
-  IconData _getIconForIntegration(String key) {
-    if (key.contains('github')) return Icons.code;
-    if (key.contains('slack')) return Icons.work; // Placeholder for Slack
-    if (key.contains('notion')) return Icons.note;
-    if (key.contains('zoom')) return Icons.video_call;
-    if (key.contains('trello')) return Icons.dashboard;
-    if (key.contains('split')) return Icons.attach_money;
-    return Icons.extension;
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _bioController.dispose();
-    _goalsController.dispose();
-    _locationController.dispose();
-    for (var c in _controllers.values) {
-      c.dispose();
-    }
-    super.dispose();
   }
 }

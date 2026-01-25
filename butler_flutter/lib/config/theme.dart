@@ -5,7 +5,7 @@ class AppTheme {
   // Primary Colors (Soft Blue/Purple)
   static const primaryColor = Color(0xFF6366F1); // Indigo-500
   static const primaryVariant = Color(0xFF4F46E5); // Indigo-600
-  
+
   // Neutral Colors
   static const backgroundLight = Colors.white;
   static const surfaceLight = Colors.white;
@@ -31,7 +31,9 @@ class AppTheme {
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: textPrimaryLight,
-        surfaceContainerLow: Color(0xFFF3F4F6), // Light gray background for cards
+        surfaceContainerLow: Color(
+          0xFFF3F4F6,
+        ), // Light gray background for cards
       ),
       textTheme: GoogleFonts.outfitTextTheme().apply(
         bodyColor: textPrimaryLight,
@@ -46,7 +48,7 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
         elevation: 0,
-        indicatorColor: primaryColor.withOpacity(0.1),
+        indicatorColor: primaryColor.withValues(alpha: 0.1),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -70,7 +72,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: primaryColor, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -107,7 +112,9 @@ class AppTheme {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: primaryColor); // Keep primary in dark mode too
+            return const IconThemeData(
+              color: primaryColor,
+            ); // Keep primary in dark mode too
           }
           return const IconThemeData(color: textSecondaryDark);
         }),
@@ -127,7 +134,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: primaryColor, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }

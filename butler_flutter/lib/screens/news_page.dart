@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:butler_flutter/main.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 class NewsPage extends StatefulWidget {
   const NewsPage({super.key});
@@ -24,11 +24,15 @@ class _NewsPageState extends State<NewsPage> {
   }
 
   Future<void> _initNews() async {
-    // 1. Detect Country
+    // 1. Detect Country from user's browser using CORS-friendly API
     try {
-      final country = await client.news.getLocation();
-      if (mounted) {
-        _currentCountry = country;
+      final response = await http.get(Uri.parse('https://ipapi.co/json/'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final countryCode = data['country_code']?.toString().toLowerCase();
+        if (mounted && countryCode != null && countryCode.isNotEmpty) {
+          _currentCountry = countryCode;
+        }
       }
     } catch (e) {
       debugPrint('Failed to detect country: $e');
@@ -73,12 +77,14 @@ class _NewsPageState extends State<NewsPage> {
         if (data['results'] != null) {
           articles = articles
               .map(
-                (a) => {
+                (a) => <String, dynamic>{
                   'title': a['title'],
                   'description': a['description'],
                   'urlToImage': a['image_url'], // NewsData.io uses 'image_url'
                   'url': a['link'], // NewsData.io uses 'link'
-                  'source': {'name': a['source_name'] ?? a['source_id']},
+                  'source': <String, dynamic>{
+                    'name': a['source_name'] ?? a['source_id'] ?? 'Unknown',
+                  },
                 },
               )
               .toList();
