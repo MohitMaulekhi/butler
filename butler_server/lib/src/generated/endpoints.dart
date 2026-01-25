@@ -351,6 +351,25 @@ class Endpoints extends _i1.EndpointDispatch {
                     params['event'],
                   ),
         ),
+        'updateEvent': _i1.MethodConnector(
+          name: 'updateEvent',
+          params: {
+            'event': _i1.ParameterDescription(
+              name: 'event',
+              type: _i1.getType<_i11.CalendarEvent>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['calendar'] as _i4.CalendarEndpoint).updateEvent(
+                    session,
+                    params['event'],
+                  ),
+        ),
         'getGoogleAuthUrl': _i1.MethodConnector(
           name: 'getGoogleAuthUrl',
           params: {
@@ -700,6 +719,16 @@ class Endpoints extends _i1.EndpointDispatch {
                 params['query'],
               ),
         ),
+        'getLocation': _i1.MethodConnector(
+          name: 'getLocation',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['news'] as _i7.NewsEndpoint).getLocation(session),
+        ),
       },
     );
     connectors['profile'] = _i1.EndpointConnector(
@@ -757,6 +786,24 @@ class Endpoints extends _i1.EndpointDispatch {
               ) async => (endpoints['task'] as _i9.TaskEndpoint).addTask(
                 session,
                 params['task'],
+              ),
+        ),
+        'addTasks': _i1.MethodConnector(
+          name: 'addTasks',
+          params: {
+            'tasks': _i1.ParameterDescription(
+              name: 'tasks',
+              type: _i1.getType<List<_i14.Task>>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['task'] as _i9.TaskEndpoint).addTasks(
+                session,
+                params['tasks'],
               ),
         ),
         'listTasks': _i1.MethodConnector(

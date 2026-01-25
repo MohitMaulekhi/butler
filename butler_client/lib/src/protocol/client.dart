@@ -272,6 +272,13 @@ class EndpointCalendar extends _i2.EndpointRef {
         {'event': event},
       );
 
+  _i3.Future<_i5.CalendarEvent> updateEvent(_i5.CalendarEvent event) =>
+      caller.callServerEndpoint<_i5.CalendarEvent>(
+        'calendar',
+        'updateEvent',
+        {'event': event},
+      );
+
   /// Get OAuth URL (user clicks "Connect Google Calendar")
   _i3.Future<String> getGoogleAuthUrl(String userId) =>
       caller.callServerEndpoint<String>(
@@ -440,6 +447,12 @@ class EndpointNews extends _i2.EndpointRef {
         'searchNews',
         {'query': query},
       );
+
+  _i3.Future<String> getLocation() => caller.callServerEndpoint<String>(
+    'news',
+    'getLocation',
+    {},
+  );
 }
 
 /// {@category Endpoint}
@@ -478,6 +491,13 @@ class EndpointTask extends _i2.EndpointRef {
         'task',
         'addTask',
         {'task': task},
+      );
+
+  _i3.Future<List<_i9.Task>> addTasks(List<_i9.Task> tasks) =>
+      caller.callServerEndpoint<List<_i9.Task>>(
+        'task',
+        'addTasks',
+        {'tasks': tasks},
       );
 
   _i3.Future<List<_i9.Task>> listTasks() =>

@@ -6,11 +6,13 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:serverpod_auth_shared_flutter/serverpod_auth_shared_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
 
-  @override
   @override
   State<ChatPage> createState() => _ChatPageState();
 }
@@ -28,6 +30,16 @@ class _ChatPageState extends State<ChatPage> {
   void initState() {
     super.initState();
     _loadHistory();
+    _loadPreferences();
+  }
+
+  Future<void> _loadPreferences() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _autoPlayAudio = prefs.getBool('auto_play_audio') ?? true;
+      });
+    }
   }
 
   Future<void> _loadHistory() async {
@@ -238,10 +250,15 @@ class _ChatPageState extends State<ChatPage> {
                   icon: Icon(
                     _autoPlayAudio ? Icons.volume_up : Icons.volume_off,
                   ),
-                  onPressed: () {
+                  onPressed: () async {
+                    if (_autoPlayAudio) {
+                      await _audioPlayer.stop();
+                    }
                     setState(() {
                       _autoPlayAudio = !_autoPlayAudio;
                     });
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('auto_play_audio', _autoPlayAudio);
                   },
                   tooltip: _autoPlayAudio
                       ? 'Mute Auto-play'
@@ -300,12 +317,23 @@ class _ChatPageState extends State<ChatPage> {
                               )
                             : MarkdownBody(
                                 data: message.text,
-                                styleSheet:
-                                    MarkdownStyleSheet.fromTheme(
-                                      Theme.of(context),
-                                    ).copyWith(
-                                      p: const TextStyle(color: Colors.black87),
-                                    ),
+                                onTapLink: (text, href, title) {
+                                  if (href != null) {
+                                    launchUrl(
+                                      Uri.parse(href),
+                                      mode: LaunchMode.externalApplication,
+                                    );
+                                  }
+                                },
+                                styleSheet: MarkdownStyleSheet.fromTheme(
+                                  Theme.of(context),
+                                ).copyWith(
+                                  p: const TextStyle(color: Colors.black87),
+                                  a: TextStyle(
+                                    color: Theme.of(context).primaryColor,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
                                 selectable: true,
                               ),
                       ),

@@ -12,6 +12,7 @@ calendar:
   - addEvent:
   - listEvents:
   - deleteEvent:
+  - updateEvent:
   - getGoogleAuthUrl:
   - handleGoogleCallback:
   - getGoogleConnectionStatus:
@@ -27,11 +28,13 @@ elevenLabs:
 news:
   - getTopHeadlines:
   - searchNews:
+  - getLocation:
 profile:
   - getProfile:
   - updateProfile:
 task:
   - addTask:
+  - addTasks:
   - listTasks:
   - updateTask:
   - deleteTask:

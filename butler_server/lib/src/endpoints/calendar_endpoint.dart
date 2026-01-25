@@ -60,6 +60,15 @@ class CalendarEndpoint extends Endpoint {
     await CalendarEvent.db.deleteRow(session, event);
   }
 
+  Future<CalendarEvent> updateEvent(Session session, CalendarEvent event) async {
+    final userId = session.authenticated?.userIdentifier.toString();
+    if (userId == null) throw Exception('User not authenticated');
+    if (event.userId != userId) throw Exception('Unauthorized');
+    
+    await CalendarEvent.db.updateRow(session, event);
+    return event;
+  }
+
   // ============ Google Calendar Methods ============
 
   /// Get OAuth URL (user clicks "Connect Google Calendar")

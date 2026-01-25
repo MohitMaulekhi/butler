@@ -238,8 +238,17 @@ class IntegrationManager {
       tools.add(
         ToolSchema(
           name: 'add_local_task',
-          description: 'Add a task to the local Butler task list',
+          description: 'Add a single task to the local Butler task list',
           parameters: {'title': 'string (task title)'},
+        ),
+      );
+      tools.add(
+        ToolSchema(
+          name: 'add_local_tasks',
+          description: 'Add multiple tasks to the local Butler task list',
+          parameters: {
+            'tasks': 'list<string> (list of task titles)',
+          },
         ),
       );
       tools.add(
@@ -395,6 +404,30 @@ class IntegrationManager {
         );
         await Task.db.insertRow(session, task);
         return 'Task "$taskTitle" created successfully!';
+
+      case 'add_local_tasks':
+      case 'create_tasks':
+        if (userId == null) return 'User not authenticated';
+        final tasksList = args['tasks'] as List?;
+        if (tasksList == null || tasksList.isEmpty) {
+          return 'No tasks provided';
+        }
+
+        final addedTasks = <String>[];
+        for (var t in tasksList) {
+          final title = t.toString();
+          await Task.db.insertRow(
+            session,
+            Task(
+              title: title,
+              isCompleted: false,
+              createdAt: DateTime.now(),
+              userId: userId!,
+            ),
+          );
+          addedTasks.add(title);
+        }
+        return 'Created ${addedTasks.length} tasks: ${addedTasks.join(", ")}';
 
       case 'add_local_event':
       case 'create_event':

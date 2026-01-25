@@ -5,7 +5,6 @@ import 'package:butler_flutter/services/google_calendar_service.dart';
 import 'package:butler_flutter/screens/settings/google_calendar_settings_screen.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:add_2_calendar/add_2_calendar.dart' as add2;
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -185,16 +184,106 @@ class CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  void _addToCalendar(CalendarEvent event) {
-    final add2.Event calendarEvent = add2.Event(
-      title: event.title,
-      description: event.description ?? '',
-      location: 'Butler App Event',
-      startDate: event.startTime,
-      endDate: event.endTime,
-      allDay: false,
+  void _showEditDialog(CalendarEvent event) {
+    final titleController = TextEditingController(text: event.title);
+    final durationMinutes =
+        event.endTime.difference(event.startTime).inMinutes;
+    final durationController =
+        TextEditingController(text: durationMinutes.toString());
+    TimeOfDay selectedTime = TimeOfDay.fromDateTime(event.startTime);
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Edit Event'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Event Title'),
+                autofocus: true,
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                title: const Text('Time'),
+                trailing: Text(selectedTime.format(context)),
+                onTap: () async {
+                  final time = await showTimePicker(
+                    context: context,
+                    initialTime: selectedTime,
+                  );
+                  if (time != null) {
+                    setState(() => selectedTime = time);
+                  }
+                },
+              ),
+              TextField(
+                controller: durationController,
+                decoration: const InputDecoration(
+                  labelText: 'Duration (minutes)',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (titleController.text.isNotEmpty) {
+                  final duration =
+                      int.tryParse(durationController.text) ?? durationMinutes;
+                  _updateEvent(
+                    event,
+                    titleController.text,
+                    selectedTime,
+                    duration,
+                  );
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
     );
-    add2.Add2Calendar.addEvent2Cal(calendarEvent);
+  }
+
+  Future<void> _updateEvent(
+    CalendarEvent originalEvent,
+    String newTitle,
+    TimeOfDay newTime,
+    int durationMinutes,
+  ) async {
+    try {
+      final startTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        newTime.hour,
+        newTime.minute,
+      );
+      final endTime = startTime.add(Duration(minutes: durationMinutes));
+
+      originalEvent.title = newTitle;
+      originalEvent.startTime = startTime;
+      originalEvent.endTime = endTime;
+
+      await client.calendar.updateEvent(originalEvent);
+      loadEvents();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update event: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _syncGoogleCalendar() async {
@@ -315,8 +404,8 @@ class CalendarPageState extends State<CalendarPage> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.edit_calendar),
-                              onPressed: () => _addToCalendar(event),
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _showEditDialog(event),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_outline),

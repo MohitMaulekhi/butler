@@ -12,6 +12,18 @@ class TaskEndpoint extends Endpoint {
     return task;
   }
 
+  Future<List<Task>> addTasks(Session session, List<Task> tasks) async {
+    final userId = session.authenticated?.userIdentifier.toString();
+    if (userId == null) throw Exception('User not authenticated');
+
+    for (var task in tasks) {
+      task.createdAt = DateTime.now();
+      task.userId = userId;
+    }
+    await Task.db.insert(session, tasks);
+    return tasks;
+  }
+
   Future<List<Task>> listTasks(Session session) async {
     final userId = session.authenticated?.userIdentifier.toString();
     if (userId == null) return [];

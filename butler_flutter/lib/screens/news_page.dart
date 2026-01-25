@@ -26,13 +26,9 @@ class _NewsPageState extends State<NewsPage> {
   Future<void> _initNews() async {
     // 1. Detect Country
     try {
-      final response = await http.get(Uri.parse('http://ip-api.com/json'));
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final countryCode = data['countryCode'] as String?;
-        if (countryCode != null && countryCode.isNotEmpty) {
-          _currentCountry = countryCode.toLowerCase();
-        }
+      final country = await client.news.getLocation();
+      if (mounted) {
+        _currentCountry = country;
       }
     } catch (e) {
       debugPrint('Failed to detect country: $e');
