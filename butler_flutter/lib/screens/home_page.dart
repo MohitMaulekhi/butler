@@ -59,7 +59,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: _currentIndex == 0 ? null : AppBar(
         title: Text(_getTitle(_currentIndex)),
         centerTitle: true,
       ),
