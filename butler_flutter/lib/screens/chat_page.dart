@@ -27,7 +27,6 @@ class _ChatPageState extends State<ChatPage> {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _autoPlayAudio = false; // Default OFF
   String _userName = 'User';
-  String _userLocation = '';
   int _selectedAvatarIndex = 0;
 
   @override
@@ -36,7 +35,6 @@ class _ChatPageState extends State<ChatPage> {
     _loadHistory();
     _loadPreferences();
     _loadUserName();
-    _loadUserLocation();
     _loadAvatarPreference();
   }
 
@@ -64,19 +62,6 @@ class _ChatPageState extends State<ChatPage> {
       }
     } catch (e) {
       debugPrint('Failed to load user name: $e');
-    }
-  }
-
-  Future<void> _loadUserLocation() async {
-    try {
-      final profile = await client.profile.getProfile();
-      if (mounted) {
-        setState(() {
-          _userLocation = profile.location ?? '';
-        });
-      }
-    } catch (e) {
-      debugPrint('Failed to load user location: $e');
     }
   }
 
@@ -155,12 +140,32 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   void _openVoiceModal() async {
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const VoiceModal(),
-    );
+    final isWide = MediaQuery.of(context).size.width >= 900;
+
+    final result = await (isWide
+        ? showDialog<String>(
+            context: context,
+            builder: (context) => Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 450,
+                  maxHeight: 650,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: const VoiceModal(),
+                ),
+              ),
+            ),
+          )
+        : showModalBottomSheet<String>(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => const VoiceModal(),
+          ));
 
     if (result != null && result.isNotEmpty) {
       _messageController.text = result;
@@ -308,347 +313,363 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isWide = MediaQuery.of(context).size.width >= 900;
+
     return Scaffold(
+      backgroundColor: Colors.transparent, // Inherit from HomePage parent
       body: SafeArea(
         child: Column(
           children: [
-            // Custom Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${_getGreeting()},',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+            // Custom Header - Only show on mobile or when not in desktop layout
+            if (!isWide)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_getGreeting()},',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                      Text(
-                        _userName, // Real user name
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+                        Text(
+                          _userName,
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.delete_outline,
-                          color: theme.colorScheme.onSurfaceVariant,
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          onPressed: _resetChat,
+                          tooltip: 'Clear Chat',
                         ),
-                        onPressed: _resetChat,
-                        tooltip: 'Clear Chat',
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          _autoPlayAudio ? Icons.volume_up : Icons.volume_off,
-                          color: theme.colorScheme.onSurfaceVariant,
+                        IconButton(
+                          icon: Icon(
+                            _autoPlayAudio ? Icons.volume_up : Icons.volume_off,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          onPressed: () async {
+                            if (_autoPlayAudio) {
+                              await _audioPlayer.stop();
+                            }
+                            setState(() {
+                              _autoPlayAudio = !_autoPlayAudio;
+                            });
+                            final prefs = await SharedPreferences.getInstance();
+                            await prefs.setBool(
+                              'auto_play_audio',
+                              _autoPlayAudio,
+                            );
+                          },
+                          tooltip: _autoPlayAudio ? 'Mute' : 'Unmute',
                         ),
-                        onPressed: () async {
-                          if (_autoPlayAudio) {
-                            await _audioPlayer.stop();
-                          }
-                          setState(() {
-                            _autoPlayAudio = !_autoPlayAudio;
-                          });
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.setBool(
-                            'auto_play_audio',
-                            _autoPlayAudio,
-                          );
-                        },
-                        tooltip: _autoPlayAudio ? 'Mute' : 'Unmute',
-                      ),
-                      const SizedBox(width: 8),
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundImage: NetworkImage(
-                          avatarUrls[_selectedAvatarIndex < avatarUrls.length
-                              ? _selectedAvatarIndex
-                              : 0],
+                        const SizedBox(width: 8),
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundImage: NetworkImage(
+                            avatarUrls[_selectedAvatarIndex < avatarUrls.length
+                                ? _selectedAvatarIndex
+                                : 0],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            // Suggestions (Optional, matches screenshot)
-            SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildSuggestionChip(
-                    context,
-                    _userLocation.isNotEmpty
-                        ? 'Weather in $_userLocation'
-                        : 'Weather Today',
-                    Icons.wb_sunny_rounded,
-                    Colors.orange,
-                  ),
-                  _buildSuggestionChip(
-                    context,
-                    'View Agenda',
-                    Icons.calendar_today_rounded,
-                    Colors.red,
-                  ),
-                  _buildSuggestionChip(
-                    context,
-                    'Trending Movies',
-                    Icons.music_note_rounded,
-                    Colors.blue,
-                  ),
-                ],
+            // Suggestions - More minimal on desktop
+            if (_messages.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 40),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.smart_toy,
+                      size: 64,
+                      color: theme.colorScheme.primary.withOpacity(0.2),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'What can I help with today?',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _buildSuggestionChip(
+                          context,
+                          'Weather Today',
+                          Icons.wb_sunny_rounded,
+                          Colors.orange,
+                        ),
+                        _buildSuggestionChip(
+                          context,
+                          'View Agenda',
+                          Icons.calendar_today_rounded,
+                          Colors.red,
+                        ),
+                        _buildSuggestionChip(
+                          context,
+                          'Trending Movies',
+                          Icons.music_note_rounded,
+                          Colors.blue,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
             Expanded(
-              child: _messages.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.chat_bubble_outline,
-                            size: 48,
-                            color: theme.colorScheme.primary.withOpacity(0.5),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Start a conversation with Butler',
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 24,
-                      ),
-                      itemCount: _messages.length,
-                      itemBuilder: (context, index) {
-                        final message = _messages[index];
-                        final isUser = message.isUser;
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 850),
+                  child: ListView.builder(
+                    controller: _scrollController,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isWide ? 40 : 16,
+                      vertical: 24,
+                    ),
+                    itemCount: _messages.length,
+                    itemBuilder: (context, index) {
+                      final message = _messages[index];
+                      final isUser = message.isUser;
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          child: Row(
-                            mainAxisAlignment: isUser
-                                ? MainAxisAlignment.end
-                                : MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (!isUser) ...[
-                                CircleAvatar(
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 32),
+                        child: Row(
+                          mainAxisAlignment: isUser
+                              ? MainAxisAlignment.end
+                              : MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (!isUser) ...[
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                child: CircleAvatar(
                                   radius: 16,
-                                  backgroundColor: theme.colorScheme.primary
-                                      .withOpacity(0.1),
+                                  backgroundColor: Colors.transparent,
                                   child: Icon(
                                     Icons.smart_toy,
-                                    size: 18,
+                                    size: 24,
                                     color: theme.colorScheme.primary,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                              ],
-                              Flexible(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 14,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: message.isError
-                                        ? theme.colorScheme.errorContainer
-                                        : isUser
-                                        ? theme.colorScheme.primary
-                                        : theme.colorScheme.surfaceContainerLow,
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: const Radius.circular(20),
-                                      topRight: const Radius.circular(20),
-                                      bottomLeft: isUser
-                                          ? const Radius.circular(20)
-                                          : const Radius.circular(4),
-                                      bottomRight: isUser
-                                          ? const Radius.circular(4)
-                                          : const Radius.circular(20),
-                                    ),
-                                  ),
-                                  child: message.isError
-                                      ? Text(
-                                          message.text,
-                                          style: TextStyle(
-                                            color: theme
-                                                .colorScheme
-                                                .onErrorContainer,
-                                          ),
-                                        )
-                                      : isUser
-                                      ? Text(
-                                          message.text,
-                                          style: theme.textTheme.bodyMedium
-                                              ?.copyWith(
-                                                color:
-                                                    theme.colorScheme.onPrimary,
-                                              ),
-                                        )
-                                      : MarkdownBody(
-                                          data: message.text,
-                                          onTapLink: (text, href, title) {
-                                            if (href != null) {
-                                              launchUrl(
-                                                Uri.parse(href),
-                                                mode: LaunchMode
-                                                    .externalApplication,
-                                              );
-                                            }
-                                          },
-                                          styleSheet:
-                                              MarkdownStyleSheet.fromTheme(
-                                                theme,
-                                              ).copyWith(
-                                                p: theme.textTheme.bodyMedium
-                                                    ?.copyWith(
-                                                      color: theme
-                                                          .colorScheme
-                                                          .onSurface,
-                                                    ),
-                                                code: theme.textTheme.bodySmall
-                                                    ?.copyWith(
-                                                      backgroundColor: theme
-                                                          .colorScheme
-                                                          .surface,
-                                                      fontFamily: 'monospace',
-                                                    ),
-                                                codeblockDecoration:
-                                                    BoxDecoration(
-                                                      color: theme
-                                                          .colorScheme
-                                                          .surface,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            8,
-                                                          ),
-                                                    ),
-                                              ),
-                                          selectable: true,
+                              ),
+                              const SizedBox(width: 16),
+                            ],
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: message.isError
+                                      ? theme.colorScheme.errorContainer
+                                            .withOpacity(0.2)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (message.isError)
+                                      Text(
+                                        message.text,
+                                        style: TextStyle(
+                                          color: theme.colorScheme.error,
                                         ),
+                                      )
+                                    else if (isUser)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: theme
+                                              .colorScheme
+                                              .surfaceContainerHigh,
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          message.text,
+                                          style: theme.textTheme.bodyLarge,
+                                        ),
+                                      )
+                                    else
+                                      MarkdownBody(
+                                        data: message.text,
+                                        onTapLink: (text, href, title) {
+                                          if (href != null) {
+                                            launchUrl(
+                                              Uri.parse(href),
+                                              mode: LaunchMode
+                                                  .externalApplication,
+                                            );
+                                          }
+                                        },
+                                        styleSheet:
+                                            MarkdownStyleSheet.fromTheme(
+                                              theme,
+                                            ).copyWith(
+                                              p: theme.textTheme.bodyLarge
+                                                  ?.copyWith(
+                                                    height: 1.6,
+                                                    color: theme
+                                                        .colorScheme
+                                                        .onSurface
+                                                        .withOpacity(0.9),
+                                                  ),
+                                              code: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    backgroundColor: theme
+                                                        .colorScheme
+                                                        .surfaceContainerLow,
+                                                    fontFamily: 'monospace',
+                                                  ),
+                                              codeblockDecoration:
+                                                  BoxDecoration(
+                                                    color: theme
+                                                        .colorScheme
+                                                        .surfaceContainerLow,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                  ),
+                                            ),
+                                        selectable: true,
+                                      ),
+                                  ],
                                 ),
                               ),
-                              if (isUser) ...[
-                                const SizedBox(width: 8),
-                                CircleAvatar(
-                                  radius: 16,
-                                  backgroundColor: Colors.grey,
-                                  backgroundImage: NetworkImage(
-                                    avatarUrls[_selectedAvatarIndex <
-                                            avatarUrls.length
-                                        ? _selectedAvatarIndex
-                                        : 0],
-                                  ),
-                                  child: null,
-                                ),
-                              ],
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ),
             if (_isLoading)
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: LinearProgressIndicator(
-                  backgroundColor: Colors.transparent,
-                  color: theme.colorScheme.primary.withOpacity(0.5),
+              Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 800),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: LinearProgressIndicator(
+                      backgroundColor: Colors.transparent,
+                      color: theme.colorScheme.primary.withOpacity(0.5),
+                    ),
+                  ),
                 ),
               ),
             // Input Area
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(50),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: _isLoading ? null : _openVoiceModal,
-                            icon: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primary,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.mic,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                            tooltip: 'Voice Chat',
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: _messageController,
-                              decoration: InputDecoration(
-                                hintText: 'Ask anything...',
-                                hintStyle: TextStyle(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
-                                ),
-                                fillColor: Colors.transparent,
-                              ),
-                              onSubmitted: (_) => _sendMessage(),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: _isLoading ? null : _sendMessage,
-                            icon: Icon(
-                              Icons.arrow_upward_rounded,
-                              color: theme.colorScheme.primary,
-                            ),
-                            tooltip: 'Send',
-                          ),
-                          const SizedBox(width: 4),
-                        ],
-                      ),
-                    ),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 800),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
                   ),
-                ],
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerLow,
+                            borderRadius: BorderRadius.circular(50),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              const SizedBox(width: 8),
+                              IconButton(
+                                onPressed: _isLoading ? null : _openVoiceModal,
+                                icon: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.mic,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                                tooltip: 'Voice Chat',
+                              ),
+                              Expanded(
+                                child: TextField(
+                                  controller: _messageController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Ask anything...',
+                                    hintStyle: TextStyle(
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 14,
+                                    ),
+                                    fillColor: Colors.transparent,
+                                  ),
+                                  onSubmitted: (_) => _sendMessage(),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: _isLoading ? null : _sendMessage,
+                                icon: Icon(
+                                  Icons.arrow_upward_rounded,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                tooltip: 'Send',
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],

@@ -154,68 +154,109 @@ class _NewsPageState extends State<NewsPage> {
       );
     }
 
+    final isDesktop = MediaQuery.of(context).size.width >= 900;
+    final isTablet = MediaQuery.of(context).size.width >= 600;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: RefreshIndicator(
         onRefresh: _loadNews,
-        child: ListView.builder(
-          itemCount: _articles!.length,
-          itemBuilder: (context, index) {
-            final article = _articles![index];
-            final title = article['title'] ?? 'No Title';
-            final description = article['description'];
-            final imageUrl = article['urlToImage'];
-            final source = article['source']?['name'];
-            final url = article['url'];
+        child: isTablet
+            ? GridView.builder(
+                padding: const EdgeInsets.all(16),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: isDesktop ? 3 : 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.85,
+                ),
+                itemCount: _articles!.length,
+                itemBuilder: (context, index) {
+                  return _buildArticleCard(context, _articles![index]);
+                },
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: _articles!.length,
+                itemBuilder: (context, index) {
+                  return _buildArticleCard(
+                    context,
+                    _articles![index],
+                    isList: true,
+                  );
+                },
+              ),
+      ),
+    );
+  }
 
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: url != null ? () => _launchUrl(url) : null,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (imageUrl != null)
-                      Image.network(
-                        imageUrl,
-                        height: 200,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (source != null)
-                            Text(
-                              source,
-                              style: Theme.of(context).textTheme.labelSmall,
-                            ),
-                          const SizedBox(height: 8),
-                          Text(
-                            title,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          if (description != null) ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              description,
-                              style: Theme.of(context).textTheme.bodyMedium,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+  Widget _buildArticleCard(
+    BuildContext context,
+    Map<String, dynamic> article, {
+    bool isList = false,
+  }) {
+    final title = article['title'] ?? 'No Title';
+    final description = article['description'];
+    final imageUrl = article['urlToImage'];
+    final source = article['source']?['name'];
+    final url = article['url'];
+
+    return Card(
+      margin: isList
+          ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
+          : EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: url != null ? () => _launchUrl(url) : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (imageUrl != null)
+              Image.network(
+                imageUrl,
+                height: isList ? 200 : 140,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  height: isList ? 200 : 140,
+                  color: Colors.grey.withOpacity(0.2),
+                  child: const Center(child: Icon(Icons.image_not_supported)),
                 ),
               ),
-            );
-          },
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (source != null)
+                    Text(
+                      source,
+                      style: Theme.of(context).textTheme.labelSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (description != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: Theme.of(context).textTheme.bodySmall,
+                      maxLines: isList ? 3 : 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

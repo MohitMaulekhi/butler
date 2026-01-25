@@ -173,33 +173,39 @@ class _VoiceModalState extends State<VoiceModal>
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.of(context).size.width >= 900;
+
     return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
+      height: isDesktop ? 600 : MediaQuery.of(context).size.height * 0.9,
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E), // Dark background
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: isDesktop
+            ? BorderRadius.circular(24)
+            : const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.5),
             blurRadius: 20,
-            offset: const Offset(0, -5),
+            offset: isDesktop ? const Offset(0, 10) : const Offset(0, -5),
           ),
         ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.max,
         children: [
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(2),
+          if (!isDesktop) ...[
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
+          ],
           const Spacer(),
 
           // Profile / Context

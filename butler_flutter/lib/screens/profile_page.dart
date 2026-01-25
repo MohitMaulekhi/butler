@@ -78,7 +78,7 @@ class _ProfilePageState extends State<ProfilePage> {
       // Get user email from auth session
       final authInfo = client.authSessionManager.authInfo;
       if (authInfo != null) {
-        _userEmail = _profile?.name ?? 'No email';
+        _userEmail = _profile?.name ?? '';
       }
 
       // Load profile from server
@@ -352,377 +352,419 @@ class _ProfilePageState extends State<ProfilePage> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 0,
-            backgroundColor: theme.colorScheme.surface,
-            title: Text(
-              'Profile & Settings',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            centerTitle: true,
+    final isWide = MediaQuery.of(context).size.width >= 900;
+    // final theme = Theme.of(context); // This line is now redundant as theme is declared above
+
+    // Common card decoration for a premium feel
+    BoxDecoration sectionDecoration() => BoxDecoration(
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(24),
+      border: Border.all(
+        color: theme.colorScheme.outlineVariant.withOpacity(0.1),
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.03),
+          blurRadius: 20,
+          offset: const Offset(0, 10),
+        ),
+      ],
+    );
+
+    // Common input decoration for consistency and borders
+    InputDecoration fieldDecoration(String label, IconData icon) =>
+        InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, size: 20),
+          filled: true,
+          fillColor: theme.colorScheme.surfaceContainerLow.withOpacity(0.5),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Profile Card
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        GestureDetector(
-                          onTap: _showAvatarPicker,
-                          child: Stack(
-                            children: [
-                              ClipOval(
-                                child: Image.network(
-                                  avatarUrls[_selectedAvatarIndex],
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, ___) => Container(
-                                    width: 60,
-                                    height: 60,
-                                    color: theme.colorScheme.primary
-                                        .withOpacity(0.2),
-                                    child: Icon(
-                                      Icons.person,
-                                      size: 30,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.edit,
-                                    size: 12,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _name.isEmpty ? 'User' : _name,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                _userEmail,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: theme.colorScheme.primary, width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: theme.colorScheme.error),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
+        );
+
+    final profileCard = Container(
+      padding: const EdgeInsets.all(24),
+      decoration: sectionDecoration(),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: _showAvatarPicker,
+            child: Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.primary,
+                        theme.colorScheme.secondary,
                       ],
                     ),
                   ),
-                  const SizedBox(height: 32),
-
-                  // Personal Information
-                  Text(
-                    'Personal Information',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextFormField(
-                    initialValue: _name,
-                    style: TextStyle(color: theme.colorScheme.onSurface),
-                    decoration: InputDecoration(
-                      labelText: 'Display Name',
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: theme.colorScheme.outline,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
+                  child: ClipOval(
+                    child: Image.network(
+                      avatarUrls[_selectedAvatarIndex],
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, ___) => Container(
+                        width: 80,
+                        height: 80,
+                        color: theme.colorScheme.primary.withOpacity(0.2),
+                        child: Icon(
+                          Icons.person,
+                          size: 40,
                           color: theme.colorScheme.primary,
-                          width: 2,
                         ),
                       ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.person),
-                      filled: true,
-                      fillColor: theme.colorScheme.surfaceContainerLow,
                     ),
-                    onChanged: (v) => _name = v,
                   ),
-                  const SizedBox(height: 12),
-
-                  TextFormField(
-                    initialValue: _bio,
-                    style: TextStyle(color: theme.colorScheme.onSurface),
-                    decoration: InputDecoration(
-                      labelText: 'Bio',
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: theme.colorScheme.outline,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: theme.colorScheme.primary,
-                          width: 2,
-                        ),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.info_outline),
-                      filled: true,
-                      fillColor: theme.colorScheme.surfaceContainerLow,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
                     ),
-                    maxLines: 2,
-                    onChanged: (v) => _bio = v,
-                  ),
-                  const SizedBox(height: 12),
-
-                  TextFormField(
-                    initialValue: _goals,
-                    style: TextStyle(color: theme.colorScheme.onSurface),
-                    decoration: InputDecoration(
-                      labelText: 'Goals',
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: theme.colorScheme.outline,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: theme.colorScheme.primary,
-                          width: 2,
-                        ),
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.flag),
-                      filled: true,
-                      fillColor: theme.colorScheme.surfaceContainerLow,
+                    child: const Icon(
+                      Icons.camera_alt,
+                      size: 14,
+                      color: Colors.white,
                     ),
-                    maxLines: 2,
-                    onChanged: (v) => _goals = v,
                   ),
-                  const SizedBox(height: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _name.isEmpty ? 'User' : _name,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _userEmail,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
 
-                  Row(
+    final personalInfo = Container(
+      padding: const EdgeInsets.all(24),
+      decoration: sectionDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.person_outline, color: theme.colorScheme.primary),
+              const SizedBox(width: 12),
+              Text(
+                'Personal Information',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          TextFormField(
+            initialValue: _name,
+            style: TextStyle(color: theme.colorScheme.onSurface),
+            decoration: fieldDecoration('Display Name', Icons.person),
+            onChanged: (v) => _name = v,
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            initialValue: _bio,
+            style: TextStyle(color: theme.colorScheme.onSurface),
+            decoration: fieldDecoration('Bio', Icons.info_outline),
+            maxLines: 2,
+            onChanged: (v) => _bio = v,
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            initialValue: _goals,
+            style: TextStyle(color: theme.colorScheme.onSurface),
+            decoration: fieldDecoration('Goals', Icons.flag_outlined),
+            maxLines: 2,
+            onChanged: (v) => _goals = v,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _locationController,
+                  style: TextStyle(color: theme.colorScheme.onSurface),
+                  decoration: fieldDecoration(
+                    'Location',
+                    Icons.location_on_outlined,
+                  ),
+                  onChanged: (v) => _location = v,
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton.filledTonal(
+                onPressed: _autoDetectLocation,
+                icon: const Icon(Icons.my_location),
+                style: IconButton.styleFrom(
+                  padding: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _saveProfile,
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('Save Profile'),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final connectedServices = Container(
+      padding: const EdgeInsets.all(24),
+      decoration: sectionDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.link, color: theme.colorScheme.primary),
+              const SizedBox(width: 12),
+              Text(
+                'Connected Services',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ..._integrationKeys.entries.map((entry) {
+            final isConnected = _connectedState[entry.key] ?? false;
+            return Column(
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isConnected
+                          ? theme.colorScheme.primary.withOpacity(0.1)
+                          : theme.colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      _getIconForIntegration(entry.key),
+                      color: isConnected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(
+                    entry.value,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _locationController,
-                          style: TextStyle(color: theme.colorScheme.onSurface),
-                          decoration: InputDecoration(
-                            labelText: 'Location',
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: theme.colorScheme.outline,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(
-                                color: theme.colorScheme.primary,
-                                width: 2,
-                              ),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            prefixIcon: const Icon(Icons.location_on),
-                            filled: true,
-                            fillColor: theme.colorScheme.surfaceContainerLow,
-                          ),
-                          onChanged: (v) => _location = v,
+                      IconButton(
+                        icon: const Icon(Icons.help_outline, size: 18),
+                        onPressed: () => _showHelpDialog(
+                          entry.value,
+                          _keyHelp[entry.key] ?? '',
                         ),
+                        tooltip: 'How to connect',
                       ),
-                      const SizedBox(width: 8),
-                      IconButton.filledTonal(
-                        onPressed: _autoDetectLocation,
-                        icon: const Icon(Icons.my_location),
-                        tooltip: 'Auto-detect',
+                      Switch(
+                        value: isConnected,
+                        onChanged: (_) =>
+                            _showSaveDialog(entry.key, entry.value),
+                        activeColor: theme.colorScheme.primary,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: FilledButton(
-                      onPressed: _saveProfile,
-                      child: const Text('Save Profile'),
-                    ),
+                  onTap: () => _showSaveDialog(entry.key, entry.value),
+                ),
+                if (entry.key != _integrationKeys.keys.last)
+                  Divider(
+                    height: 1,
+                    color: theme.colorScheme.outlineVariant.withOpacity(0.5),
                   ),
-                  const SizedBox(height: 32),
+              ],
+            );
+          }).toList(),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await _storage.deleteAll();
+              for (var key in _integrationKeys.keys) {
+                _connectedState[key] = false;
+              }
+              setState(() {});
+            },
+            icon: const Icon(Icons.delete_sweep_outlined),
+            label: const Text('Clear All Secrets'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: theme.colorScheme.error,
+              side: BorderSide(color: theme.colorScheme.error.withOpacity(0.5)),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              minimumSize: const Size(double.infinity, 48),
+            ),
+          ),
+        ],
+      ),
+    );
 
-                  // Connected Services
-                  Text(
-                    'Connected Services',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      children: _integrationKeys.entries.map((entry) {
-                        final key = entry.key;
-                        final label = entry.value;
-                        final isConnected = _connectedState[key] ?? false;
-
-                        return Column(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
+            sliver: SliverToBoxAdapter(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1100),
+                  child: isWide
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            ListTile(
-                              leading: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  _getIconForIntegration(key),
-                                  size: 20,
-                                  color: isConnected
-                                      ? theme.colorScheme.primary
-                                      : Colors.grey,
-                                ),
-                              ),
-                              title: Text(
-                                label,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
+                            Expanded(
+                              flex: 4,
+                              child: Column(
                                 children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.info_outline),
-                                    onPressed: () => _showHelpDialog(
-                                      label,
-                                      _keyHelp[key] ?? 'No instructions',
+                                  profileCard,
+                                  const SizedBox(height: 24),
+                                  personalInfo,
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 32),
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                children: [
+                                  connectedServices,
+                                  const SizedBox(height: 32),
+                                  FilledButton.icon(
+                                    onPressed: () async {
+                                      final sessionManager =
+                                          await SessionManager.instance;
+                                      await sessionManager.signOutAllDevices();
+                                      if (context.mounted)
+                                        context.go(Routes.signinRoute);
+                                    },
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor:
+                                          theme.colorScheme.errorContainer,
+                                      foregroundColor:
+                                          theme.colorScheme.onErrorContainer,
+                                      minimumSize: const Size(
+                                        double.infinity,
+                                        60,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
                                     ),
-                                  ),
-                                  Switch(
-                                    value: isConnected,
-                                    onChanged: (_) =>
-                                        _showSaveDialog(key, label),
-                                    activeColor: theme.colorScheme.primary,
+                                    icon: const Icon(Icons.logout_rounded),
+                                    label: const Text(
+                                      'Log Out',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
-                              onTap: () => _showSaveDialog(key, label),
                             ),
-                            if (entry.key != _integrationKeys.keys.last)
-                              Divider(
-                                height: 1,
-                                indent: 60,
-                                color: theme.colorScheme.outlineVariant
-                                    .withOpacity(0.2),
-                              ),
                           ],
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Action Buttons
-                  FilledButton.tonalIcon(
-                    onPressed: () async {
-                      await _storage.deleteAll();
-                      for (var key in _integrationKeys.keys) {
-                        _connectedState[key] = false;
-                      }
-                      setState(() {});
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('All API keys cleared')),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Clear All API Keys'),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  FilledButton.icon(
-                    onPressed: () async {
-                      try {
-                        final sessionManager = await SessionManager.instance;
-                        await sessionManager.signOutAllDevices();
-                        if (context.mounted) {
-                          context.go(Routes.signinRoute);
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Logout failed: $e')),
-                          );
-                        }
-                      }
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: theme.colorScheme.errorContainer,
-                      foregroundColor: theme.colorScheme.onErrorContainer,
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Log Out'),
-                  ),
-                  const SizedBox(height: 40),
-                ],
+                        )
+                      : Column(
+                          children: [
+                            profileCard,
+                            const SizedBox(height: 24),
+                            personalInfo,
+                            const SizedBox(height: 32),
+                            connectedServices,
+                            const SizedBox(height: 32),
+                            FilledButton.icon(
+                              onPressed: () async {
+                                final sessionManager =
+                                    await SessionManager.instance;
+                                await sessionManager.signOutAllDevices();
+                                if (context.mounted)
+                                  context.go(Routes.signinRoute);
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor:
+                                    theme.colorScheme.errorContainer,
+                                foregroundColor:
+                                    theme.colorScheme.onErrorContainer,
+                                minimumSize: const Size(double.infinity, 54),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              icon: const Icon(Icons.logout_rounded),
+                              label: const Text('Log Out'),
+                            ),
+                          ],
+                        ),
+                ),
               ),
             ),
           ),

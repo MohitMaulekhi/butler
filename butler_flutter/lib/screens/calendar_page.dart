@@ -186,10 +186,10 @@ class CalendarPageState extends State<CalendarPage> {
 
   void _showEditDialog(CalendarEvent event) {
     final titleController = TextEditingController(text: event.title);
-    final durationMinutes =
-        event.endTime.difference(event.startTime).inMinutes;
-    final durationController =
-        TextEditingController(text: durationMinutes.toString());
+    final durationMinutes = event.endTime.difference(event.startTime).inMinutes;
+    final durationController = TextEditingController(
+      text: durationMinutes.toString(),
+    );
     TimeOfDay selectedTime = TimeOfDay.fromDateTime(event.startTime);
 
     showDialog(
@@ -335,89 +335,96 @@ class CalendarPageState extends State<CalendarPage> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  dateFormat.format(_selectedDate),
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                Row(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      onPressed: _isSyncing ? null : _syncGoogleCalendar,
-                      icon: _isSyncing
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.sync),
-                      tooltip: 'Sync Google Calendar',
+                    Text(
+                      dateFormat.format(_selectedDate),
+                      style: Theme.of(context).textTheme.headlineSmall,
                     ),
-                    IconButton(
-                      onPressed: _showGoogleCalendarSettings,
-                      icon: const Icon(Icons.settings),
-                      tooltip: 'Google Calendar Settings',
-                    ),
-                    IconButton(
-                      onPressed: () => _selectDate(context),
-                      icon: const Icon(Icons.calendar_today),
-                      tooltip: 'Select Date',
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: _isSyncing ? null : _syncGoogleCalendar,
+                          icon: _isSyncing
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.sync),
+                          tooltip: 'Sync Google Calendar',
+                        ),
+                        IconButton(
+                          onPressed: _showGoogleCalendarSettings,
+                          icon: const Icon(Icons.settings),
+                          tooltip: 'Google Calendar Settings',
+                        ),
+                        IconButton(
+                          onPressed: () => _selectDate(context),
+                          icon: const Icon(Icons.calendar_today),
+                          tooltip: 'Select Date',
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _events == null || _events!.isEmpty
+                    ? const Center(child: Text('No events for this day'))
+                    : ListView.builder(
+                        itemCount: _events!.length,
+                        itemBuilder: (context, index) {
+                          final event = _events![index];
+                          final timeFormat = DateFormat.jm();
+                          return ListTile(
+                            leading: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(timeFormat.format(event.startTime)),
+                                Text(
+                                  '${event.endTime.difference(event.startTime).inMinutes}m',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                            title: Text(event.title),
+                            subtitle: event.description != null
+                                ? Text(event.description!)
+                                : null,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit),
+                                  onPressed: () => _showEditDialog(event),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () => _deleteEvent(event),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
-          const Divider(height: 1),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _events == null || _events!.isEmpty
-                ? const Center(child: Text('No events for this day'))
-                : ListView.builder(
-                    itemCount: _events!.length,
-                    itemBuilder: (context, index) {
-                      final event = _events![index];
-                      final timeFormat = DateFormat.jm();
-                      return ListTile(
-                        leading: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(timeFormat.format(event.startTime)),
-                            Text(
-                              '${event.endTime.difference(event.startTime).inMinutes}m',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                        title: Text(event.title),
-                        subtitle: event.description != null
-                            ? Text(event.description!)
-                            : null,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => _showEditDialog(event),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () => _deleteEvent(event),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddDialog,
