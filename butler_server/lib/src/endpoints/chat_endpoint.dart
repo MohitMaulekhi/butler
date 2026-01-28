@@ -5,6 +5,7 @@ import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
 import '../services/integration_manager.dart';
+import '../services/memory_service.dart';
 
 class ChatEndpoint extends Endpoint {
   Future<List<ChatMessage>> getHistory(
@@ -104,9 +105,20 @@ class ChatEndpoint extends Endpoint {
         """;
     }
 
+    // Retrieve User Memories
+    final memoryService = MemoryService(geminiApiKey);
+    final memories = await memoryService.searchMemories(
+      session,
+      userId,
+      messages.last.content,
+    );
+    final memoryContext = memories.isNotEmpty
+        ? "RELEVANT USER MEMORIES:\n${memories.map((m) => '- $m').join('\n')}"
+        : "";
+
     final agent = Agent.forProvider(
       GoogleProvider(apiKey: geminiApiKey),
-      chatModelName: 'gemini-2.5-flash-lite',
+      chatModelName: 'gemini-3-flash',
     );
 
     final contextBuffer = StringBuffer();
@@ -136,6 +148,26 @@ class ChatEndpoint extends Endpoint {
 
     final tools = enableIntegrations ? manager.getAvailableTools() : [];
 
+    // Add Internal Memory Tool
+    tools.add(
+      ToolSchema(
+        name: 'save_memory',
+        description:
+            'Save a fact, preference, or important detail about the user for future reference. Use this when the user explicitly asks to remember something or mentions a significant personal detail.',
+        parameters: {
+          'type': 'object',
+          'properties': {
+            'content': {
+              'type': 'string',
+              'description':
+                  'The memory content to save (e.g., "User likes sci-fi movies").',
+            },
+          },
+          'required': ['content'],
+        },
+      ),
+    );
+
     session.log('enableIntegrations: $enableIntegrations');
     session.log('Tools count: ${tools.length}');
     session.log('userId for tools: $userId');
@@ -146,6 +178,7 @@ class ChatEndpoint extends Endpoint {
         'You are Butler, a personal assistant. '
         'Current date and time: ${now.toIso8601String()} (${now.timeZoneName}). '
         '$personalizationContext '
+        '$memoryContext '
         'Always be helpful, concise, and friendly. '
         'ALWAYS use tools when the user asks to create tasks, events, or meetings.';
 
@@ -237,6 +270,12 @@ Current date/time: ${DateTime.now().toIso8601String()}
           session.log('Tool execution error: $e', level: LogLevel.error);
           session.log('Stack trace: $stackTrace', level: LogLevel.error);
           result = 'Error executing $toolName: $e';
+        }
+
+        if (toolName == 'save_memory') {
+          final content = params['content'];
+          await memoryService.addMemory(session, userId, content);
+          result = "Memory saved successfully.";
         }
 
         // Final response with result
