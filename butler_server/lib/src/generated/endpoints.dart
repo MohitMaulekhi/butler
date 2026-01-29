@@ -22,7 +22,7 @@ import '../endpoints/task_endpoint.dart' as _i9;
 import '../greetings/greeting_endpoint.dart' as _i10;
 import 'package:butler_server/src/generated/calendar/calendar_event.dart'
     as _i11;
-import 'package:butler_server/src/generated/chat/chat_message.dart' as _i12;
+import 'package:butler_server/src/generated/chat_message.dart' as _i12;
 import 'package:butler_server/src/generated/user_profile.dart' as _i13;
 import 'package:butler_server/src/generated/tasks/task.dart' as _i14;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
@@ -514,9 +514,85 @@ class Endpoints extends _i1.EndpointDispatch {
       name: 'chat',
       endpoint: endpoints['chat']!,
       methodConnectors: {
-        'getHistory': _i1.MethodConnector(
-          name: 'getHistory',
+        'createSession': _i1.MethodConnector(
+          name: 'createSession',
           params: {
+            'title': _i1.ParameterDescription(
+              name: 'title',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i5.ChatEndpoint).createSession(
+                session,
+                params['title'],
+              ),
+        ),
+        'getSessions': _i1.MethodConnector(
+          name: 'getSessions',
+          params: {},
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['chat'] as _i5.ChatEndpoint).getSessions(session),
+        ),
+        'deleteSession': _i1.MethodConnector(
+          name: 'deleteSession',
+          params: {
+            'sessionId': _i1.ParameterDescription(
+              name: 'sessionId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['chat'] as _i5.ChatEndpoint).deleteSession(
+                session,
+                params['sessionId'],
+              ),
+        ),
+        'updateSessionTitle': _i1.MethodConnector(
+          name: 'updateSessionTitle',
+          params: {
+            'sessionId': _i1.ParameterDescription(
+              name: 'sessionId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
+            'newTitle': _i1.ParameterDescription(
+              name: 'newTitle',
+              type: _i1.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _i1.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['chat'] as _i5.ChatEndpoint).updateSessionTitle(
+                    session,
+                    params['sessionId'],
+                    params['newTitle'],
+                  ),
+        ),
+        'getSessionHistory': _i1.MethodConnector(
+          name: 'getSessionHistory',
+          params: {
+            'sessionId': _i1.ParameterDescription(
+              name: 'sessionId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
             'limit': _i1.ParameterDescription(
               name: 'limit',
               type: _i1.getType<int>(),
@@ -527,25 +603,21 @@ class Endpoints extends _i1.EndpointDispatch {
               (
                 _i1.Session session,
                 Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i5.ChatEndpoint).getHistory(
-                session,
-                limit: params['limit'],
-              ),
-        ),
-        'deleteHistory': _i1.MethodConnector(
-          name: 'deleteHistory',
-          params: {},
-          call:
-              (
-                _i1.Session session,
-                Map<String, dynamic> params,
-              ) async => (endpoints['chat'] as _i5.ChatEndpoint).deleteHistory(
-                session,
-              ),
+              ) async =>
+                  (endpoints['chat'] as _i5.ChatEndpoint).getSessionHistory(
+                    session,
+                    params['sessionId'],
+                    limit: params['limit'],
+                  ),
         ),
         'chat': _i1.MethodConnector(
           name: 'chat',
           params: {
+            'sessionId': _i1.ParameterDescription(
+              name: 'sessionId',
+              type: _i1.getType<int>(),
+              nullable: false,
+            ),
             'messages': _i1.ParameterDescription(
               name: 'messages',
               type: _i1.getType<List<_i12.ChatMessage>>(),
@@ -618,6 +690,7 @@ class Endpoints extends _i1.EndpointDispatch {
                 Map<String, dynamic> params,
               ) async => (endpoints['chat'] as _i5.ChatEndpoint).chat(
                 session,
+                params['sessionId'],
                 params['messages'],
                 notionToken: params['notionToken'],
                 splitwiseKey: params['splitwiseKey'],

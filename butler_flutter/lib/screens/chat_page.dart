@@ -1,12 +1,13 @@
 import 'package:butler_client/butler_client.dart' as protocol;
 import 'package:butler_flutter/main.dart';
 import 'package:butler_flutter/config/avatars.dart';
+import 'package:butler_flutter/screens/components/chat_sidebar.dart';
 import 'package:butler_flutter/screens/components/voice_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:serverpod_auth_shared_flutter/serverpod_auth_shared_flutter.dart';
+import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,13 +30,74 @@ class ChatPageState extends State<ChatPage> {
   String _userName = 'User';
   int _selectedAvatarIndex = 0;
 
+  // Session State
+  List<protocol.ChatSession> _sessions = [];
+  int? _currentSessionId;
+
   @override
   void initState() {
     super.initState();
-    _loadHistory();
+    _loadSessions();
     _loadPreferences();
     _loadUserName();
     _loadAvatarPreference();
+  }
+
+  Future<void> _loadSessions() async {
+    // Use client.authSessionManager which is initialized in main.dart
+    final sessionManager = client.authSessionManager;
+    if (!sessionManager.isSignedIn) return;
+
+    try {
+      final sessions = await client.chat.getSessions();
+      if (mounted) {
+        setState(() {
+          _sessions = sessions;
+          // Auto-select most recent if available and no current selection
+          if (_currentSessionId == null && _sessions.isNotEmpty) {
+            _selectSession(_sessions.first);
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load sessions: $e');
+    }
+  }
+
+  void _selectSession(protocol.ChatSession session) {
+    if (_currentSessionId == session.id) return;
+    setState(() {
+      _currentSessionId = session.id;
+      _messages.clear(); // Clear UI immediately
+    });
+    _loadHistory(session.id);
+    // On mobile, close drawer
+    if (MediaQuery.of(context).size.width < 900) {
+      Navigator.pop(context); // Close drawer
+    }
+  }
+
+  Future<void> _createNewChat() async {
+    setState(() {
+      _currentSessionId = null;
+      _messages.clear();
+    });
+    // On mobile, close drawer
+    if (MediaQuery.of(context).size.width < 900) {
+      Navigator.pop(context); // Close drawer
+    }
+  }
+
+  Future<void> _deleteSession(protocol.ChatSession session) async {
+    try {
+      await client.chat.deleteSession(session.id!);
+      await _loadSessions(); // Reload list
+      if (_currentSessionId == session.id) {
+        _createNewChat(); // Reset if deleted active
+      }
+    } catch (e) {
+      debugPrint('Failed to delete session: $e');
+    }
   }
 
   Future<void> _loadAvatarPreference() async {
@@ -75,9 +137,11 @@ class ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> _loadHistory() async {
+  Future<void> _loadHistory(int? sessionId) async {
+    if (sessionId == null) return;
+
     // Add auth check
-    final sessionManager = await SessionManager.instance;
+    final sessionManager = client.authSessionManager;
     if (!sessionManager.isSignedIn) return;
 
     try {
@@ -85,7 +149,7 @@ class ChatPageState extends State<ChatPage> {
         _isLoading = true;
       });
 
-      final history = await client.chat.getHistory(limit: 50);
+      final history = await client.chat.getSessionHistory(sessionId, limit: 50);
 
       if (mounted) {
         setState(() {
@@ -114,32 +178,8 @@ class ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> reset() => _resetChat();
-
-  Future<void> _resetChat() async {
-    try {
-      setState(() {
-        _isLoading = true;
-      });
-      await client.chat.deleteHistory();
-      if (mounted) {
-        setState(() {
-          _messages.clear();
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      debugPrint('Failed to clear chat: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to clear chat: $e')),
-        );
-      }
-    }
-  }
+  // Public method to reset/clear chat, mapped to New Chat now
+  Future<void> reset() => _createNewChat();
 
   void _openVoiceModal() async {
     final isWide = MediaQuery.of(context).size.width >= 900;
@@ -188,8 +228,28 @@ class ChatPageState extends State<ChatPage> {
     _scrollToBottom();
 
     try {
-      final githubToken = await _storage.read(key: 'github_token');
+      // 1. Create session if needed
+      if (_currentSessionId == null) {
+        try {
+          // Use first 30 chars as title or "New Chat"
+          final title = message.length > 30
+              ? '${message.substring(0, 30)}...'
+              : message;
+          final session = await client.chat.createSession(title);
+          setState(() {
+            _currentSessionId = session.id;
+            _sessions.insert(0, session); // Add to local list
+          });
+        } catch (e) {
+          debugPrint('Failed to create session: $e');
+        }
+      }
 
+      if (_currentSessionId == null) {
+        throw Exception('Could not create session');
+      }
+
+      final githubToken = await _storage.read(key: 'github_token');
       // New Keys
       final notionToken = await _storage.read(key: 'notion_token');
       final splitwiseKey = await _storage.read(key: 'splitwise_key');
@@ -197,24 +257,17 @@ class ChatPageState extends State<ChatPage> {
       final trelloToken = await _storage.read(key: 'trello_token');
       final slackToken = await _storage.read(key: 'slack_token');
       final zoomToken = await _storage.read(key: 'zoom_token');
-      // Server-side keys are managed by the server now (AlphaVantage, News, Wolfram)
-
-      // Google Auth? Use global client auth token?
-      // Usually need specific scope token. For now passing what we have if possible?
-      // Or skip until we have better google auth.
-      // We'll pass null for googleAccessToken for now or try to get it?
       String? googleAccessToken;
-      // If signed in with Google, we might be able to get accessToken from SocialSignin?
-      // Ignoring Google services for moment unless we have the token stored.
 
       // Convert history to protocol messages
       final history = _messages
           .where((m) => !m.isError)
-          .map((m) => m.toProtocol())
+          .map((m) => m.toProtocol(_currentSessionId!))
           .toList();
 
       // Use global client from main.dart
       final response = await client.chat.chat(
+        _currentSessionId!,
         history,
         githubToken: githubToken,
         notionToken: notionToken,
@@ -223,10 +276,12 @@ class ChatPageState extends State<ChatPage> {
         trelloToken: trelloToken,
         slackToken: slackToken,
         zoomToken: zoomToken,
-        // Server keys (alphaVantage, etc.) are handled by server secrets
         googleAccessToken: googleAccessToken,
         enableIntegrations: true,
       );
+
+      // Reload sessions to update updated_at or if title changes (optional)
+      _loadSessions();
 
       if (mounted) {
         setState(() {
@@ -319,360 +374,413 @@ class ChatPageState extends State<ChatPage> {
     final theme = Theme.of(context);
     final isWide = MediaQuery.of(context).size.width >= 900;
 
+    final sidebar = ChatSidebar(
+      sessions: _sessions,
+      selectedSessionId: _currentSessionId,
+      onSessionSelected: _selectSession,
+      onNewChat: _createNewChat,
+      onDeleteSession: _deleteSession,
+    );
+
     return Scaffold(
-      backgroundColor: Colors.transparent, // Inherit from HomePage parent
+      backgroundColor: Colors.transparent,
+      drawer: !isWide
+          ? Drawer(
+              child: sidebar,
+            )
+          : null,
       body: SafeArea(
-        child: Column(
+        child: Row(
           children: [
-            // Custom Header
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isWide ? 40 : 20,
-                vertical: isWide ? 24 : 16,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            if (isWide) sidebar,
+            Expanded(
+              child: Column(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${_getGreeting()},',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      Text(
-                        _userName,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.delete_outline,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        onPressed: _resetChat,
-                        tooltip: 'Clear Chat',
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          _autoPlayAudio ? Icons.volume_up : Icons.volume_off,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        onPressed: () async {
-                          if (_autoPlayAudio) {
-                            await _audioPlayer.stop();
-                          }
-                          setState(() {
-                            _autoPlayAudio = !_autoPlayAudio;
-                          });
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.setBool(
-                            'auto_play_audio',
-                            _autoPlayAudio,
-                          );
-                        },
-                        tooltip: _autoPlayAudio ? 'Mute' : 'Unmute',
-                      ),
-                      const SizedBox(width: 8),
-                      CircleAvatar(
-                        radius: 20,
-                        backgroundImage: NetworkImage(
-                          avatarUrls[_selectedAvatarIndex < avatarUrls.length
-                              ? _selectedAvatarIndex
-                              : 0],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            // Suggestions - More minimal on desktop
-            if (_messages.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 40),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.smart_toy,
-                      size: 64,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                  // Custom Header
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isWide ? 40 : 20,
+                      vertical: isWide ? 24 : 16,
                     ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'What can I help with today?',
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      alignment: WrapAlignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildSuggestionChip(
-                          context,
-                          'Weather Today',
-                          Icons.wb_sunny_rounded,
-                          Colors.orange,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${_getGreeting()},',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            Text(
+                              _userName,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                        _buildSuggestionChip(
-                          context,
-                          'View Agenda',
-                          Icons.calendar_today_rounded,
-                          Colors.red,
-                        ),
-                        _buildSuggestionChip(
-                          context,
-                          'Trending Movies',
-                          Icons.music_note_rounded,
-                          Colors.blue,
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.add,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              onPressed: _createNewChat,
+                              tooltip: 'New Chat',
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                _autoPlayAudio
+                                    ? Icons.volume_up
+                                    : Icons.volume_off,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              onPressed: () async {
+                                if (_autoPlayAudio) {
+                                  await _audioPlayer.stop();
+                                }
+                                setState(() {
+                                  _autoPlayAudio = !_autoPlayAudio;
+                                });
+                                final prefs =
+                                    await SharedPreferences.getInstance();
+                                await prefs.setBool(
+                                  'auto_play_audio',
+                                  _autoPlayAudio,
+                                );
+                              },
+                              tooltip: _autoPlayAudio ? 'Mute' : 'Unmute',
+                            ),
+                            const SizedBox(width: 8),
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundImage: NetworkImage(
+                                avatarUrls[_selectedAvatarIndex <
+                                        avatarUrls.length
+                                    ? _selectedAvatarIndex
+                                    : 0],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-            Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 850),
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isWide ? 40 : 16,
-                      vertical: 24,
-                    ),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      final message = _messages[index];
-                      final isUser = message.isUser;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 32),
-                        child: Row(
-                          mainAxisAlignment: isUser
-                              ? MainAxisAlignment.end
-                              : MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (!isUser) ...[
-                              Container(
-                                margin: const EdgeInsets.only(top: 4),
-                                child: CircleAvatar(
-                                  radius: 16,
-                                  backgroundColor: Colors.transparent,
-                                  child: Icon(
-                                    Icons.smart_toy,
-                                    size: 24,
-                                    color: theme.colorScheme.primary,
-                                  ),
-                                ),
+                  ),
+                  // Suggestions - More minimal on desktop
+                  if (_messages.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 40),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.smart_toy,
+                            size: 64,
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.2,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'What can I help with today?',
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              _buildSuggestionChip(
+                                context,
+                                'Weather Today',
+                                Icons.wb_sunny_rounded,
+                                Colors.orange,
                               ),
-                              const SizedBox(width: 16),
+                              _buildSuggestionChip(
+                                context,
+                                'View Agenda',
+                                Icons.calendar_today_rounded,
+                                Colors.red,
+                              ),
+                              _buildSuggestionChip(
+                                context,
+                                'Trending Movies',
+                                Icons.music_note_rounded,
+                                Colors.blue,
+                              ),
                             ],
-                            Flexible(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: message.isError
-                                      ? theme.colorScheme.errorContainer
-                                            .withValues(alpha: 0.2)
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    if (message.isError)
-                                      Text(
-                                        message.text,
-                                        style: TextStyle(
-                                          color: theme.colorScheme.error,
+                          ),
+                        ],
+                      ),
+                    ),
+                  Expanded(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 850),
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isWide ? 40 : 16,
+                            vertical: 24,
+                          ),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final message = _messages[index];
+                            final isUser = message.isUser;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 32),
+                              child: Row(
+                                mainAxisAlignment: isUser
+                                    ? MainAxisAlignment.end
+                                    : MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (!isUser) ...[
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 4),
+                                      child: CircleAvatar(
+                                        radius: 16,
+                                        backgroundColor: Colors.transparent,
+                                        child: Icon(
+                                          Icons.smart_toy,
+                                          size: 24,
+                                          color: theme.colorScheme.primary,
                                         ),
-                                      )
-                                    else if (isUser)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 20,
-                                          vertical: 12,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: theme
-                                              .colorScheme
-                                              .surfaceContainerHigh,
-                                          borderRadius: BorderRadius.circular(
-                                            24,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          message.text,
-                                          style: theme.textTheme.bodyLarge,
-                                        ),
-                                      )
-                                    else
-                                      MarkdownBody(
-                                        data: message.text,
-                                        onTapLink: (text, href, title) {
-                                          if (href != null) {
-                                            launchUrl(
-                                              Uri.parse(href),
-                                              mode: LaunchMode
-                                                  .externalApplication,
-                                            );
-                                          }
-                                        },
-                                        styleSheet:
-                                            MarkdownStyleSheet.fromTheme(
-                                              theme,
-                                            ).copyWith(
-                                              p: theme.textTheme.bodyLarge
-                                                  ?.copyWith(
-                                                    height: 1.6,
-                                                    color: theme
-                                                        .colorScheme
-                                                        .onSurface
-                                                        .withValues(alpha: 0.9),
-                                                  ),
-                                              code: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                    backgroundColor: theme
-                                                        .colorScheme
-                                                        .surfaceContainerLow,
-                                                    fontFamily: 'monospace',
-                                                  ),
-                                              codeblockDecoration:
-                                                  BoxDecoration(
-                                                    color: theme
-                                                        .colorScheme
-                                                        .surfaceContainerLow,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          8,
-                                                        ),
-                                                  ),
-                                            ),
-                                        selectable: true,
                                       ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                  ],
+                                  Flexible(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: message.isError
+                                            ? theme.colorScheme.errorContainer
+                                                  .withValues(alpha: 0.2)
+                                            : Colors.transparent,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          if (message.isError)
+                                            Text(
+                                              message.text,
+                                              style: TextStyle(
+                                                color: theme.colorScheme.error,
+                                              ),
+                                            )
+                                          else if (isUser)
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 20,
+                                                    vertical: 12,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: theme
+                                                    .colorScheme
+                                                    .surfaceContainerHigh,
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                      24,
+                                                    ),
+                                              ),
+                                              child: Text(
+                                                message.text,
+                                                style:
+                                                    theme.textTheme.bodyLarge,
+                                              ),
+                                            )
+                                          else
+                                            MarkdownBody(
+                                              data: message.text,
+                                              onTapLink: (text, href, title) {
+                                                if (href != null) {
+                                                  launchUrl(
+                                                    Uri.parse(href),
+                                                    mode: LaunchMode
+                                                        .externalApplication,
+                                                  );
+                                                }
+                                              },
+                                              styleSheet:
+                                                  MarkdownStyleSheet.fromTheme(
+                                                    theme,
+                                                  ).copyWith(
+                                                    p: theme.textTheme.bodyLarge
+                                                        ?.copyWith(
+                                                          height: 1.6,
+                                                          color: theme
+                                                              .colorScheme
+                                                              .onSurface
+                                                              .withValues(
+                                                                alpha: 0.9,
+                                                              ),
+                                                        ),
+                                                    code: theme
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          backgroundColor: theme
+                                                              .colorScheme
+                                                              .surfaceContainerLow,
+                                                          fontFamily:
+                                                              'monospace',
+                                                        ),
+                                                    codeblockDecoration: BoxDecoration(
+                                                      color: theme
+                                                          .colorScheme
+                                                          .surfaceContainerLow,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                  ),
+                                              selectable: true,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_isLoading)
+                    Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 800),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          child: LinearProgressIndicator(
+                            backgroundColor: Colors.transparent,
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Input Area
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 800),
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                        decoration: const BoxDecoration(
+                          color: Colors.transparent,
+                        ),
+                        child: Row(
+                          children: [
+                            // Drawer Trigger on Mobile
+                            if (!isWide)
+                              IconButton(
+                                icon: const Icon(Icons.menu),
+                                onPressed: () {
+                                  Scaffold.of(context).openDrawer();
+                                },
+                              ),
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surfaceContainerLow,
+                                  borderRadius: BorderRadius.circular(50),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.05,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    const SizedBox(width: 8),
+                                    IconButton(
+                                      onPressed: _isLoading
+                                          ? null
+                                          : _openVoiceModal,
+                                      icon: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.primary,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.mic,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      tooltip: 'Voice Chat',
+                                    ),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _messageController,
+                                        decoration: InputDecoration(
+                                          hintText: 'Ask anything...',
+                                          hintStyle: TextStyle(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                          border: InputBorder.none,
+                                          enabledBorder: InputBorder.none,
+                                          focusedBorder: InputBorder.none,
+                                          contentPadding:
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 14,
+                                              ),
+                                          fillColor: Colors.transparent,
+                                        ),
+                                        onSubmitted: (_) => _sendMessage(),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: _isLoading
+                                          ? null
+                                          : _sendMessage,
+                                      icon: Icon(
+                                        Icons.arrow_upward_rounded,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      tooltip: 'Send',
+                                    ),
+                                    const SizedBox(width: 4),
                                   ],
                                 ),
                               ),
                             ),
                           ],
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-            if (_isLoading)
-              Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 800),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: LinearProgressIndicator(
-                      backgroundColor: Colors.transparent,
-                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ),
-              ),
-            // Input Area
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 800),
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                  decoration: const BoxDecoration(
-                    color: Colors.transparent,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(50),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              const SizedBox(width: 8),
-                              IconButton(
-                                onPressed: _isLoading ? null : _openVoiceModal,
-                                icon: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.mic,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                                tooltip: 'Voice Chat',
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: _messageController,
-                                  decoration: InputDecoration(
-                                    hintText: 'Ask anything...',
-                                    hintStyle: TextStyle(
-                                      color: theme.colorScheme.onSurfaceVariant,
-                                    ),
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 14,
-                                    ),
-                                    fillColor: Colors.transparent,
-                                  ),
-                                  onSubmitted: (_) => _sendMessage(),
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: _isLoading ? null : _sendMessage,
-                                icon: Icon(
-                                  Icons.arrow_upward_rounded,
-                                  color: theme.colorScheme.primary,
-                                ),
-                                tooltip: 'Send',
-                              ),
-                              const SizedBox(width: 4),
-                            ],
-                          ),
-                        ),
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ],
@@ -712,12 +820,13 @@ class UiChatMessage {
     this.isError = false,
   });
 
-  protocol.ChatMessage toProtocol() {
+  protocol.ChatMessage toProtocol(int sessionId) {
     return protocol.ChatMessage(
       content: text,
       isUser: isUser,
       createdAt: DateTime.now(),
       userId: '',
+      sessionId: sessionId,
     );
   }
 }

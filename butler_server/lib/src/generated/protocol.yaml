@@ -20,8 +20,11 @@ calendar:
   - pushEventToGoogle:
   - disconnectGoogle:
 chat:
-  - getHistory:
-  - deleteHistory:
+  - createSession:
+  - getSessions:
+  - deleteSession:
+  - updateSessionTitle:
+  - getSessionHistory:
   - chat:
 elevenLabs:
   - textToSpeech:

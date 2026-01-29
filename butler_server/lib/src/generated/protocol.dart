@@ -19,19 +19,24 @@ import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _i5;
 import 'calendar/calendar_event.dart' as _i6;
 import 'calendar/google_calendar_connection.dart' as _i7;
-import 'chat/chat_message.dart' as _i8;
-import 'greetings/greeting.dart' as _i9;
-import 'tasks/task.dart' as _i10;
-import 'user_profile.dart' as _i11;
+import 'chat_message.dart' as _i8;
+import 'chat_session.dart' as _i9;
+import 'greetings/greeting.dart' as _i10;
+import 'tasks/task.dart' as _i11;
+import 'user_memory.dart' as _i12;
+import 'user_profile.dart' as _i13;
 import 'package:butler_server/src/generated/calendar/calendar_event.dart'
-    as _i12;
-import 'package:butler_server/src/generated/chat/chat_message.dart' as _i13;
-import 'package:butler_server/src/generated/tasks/task.dart' as _i14;
+    as _i14;
+import 'package:butler_server/src/generated/chat_session.dart' as _i15;
+import 'package:butler_server/src/generated/chat_message.dart' as _i16;
+import 'package:butler_server/src/generated/tasks/task.dart' as _i17;
 export 'calendar/calendar_event.dart';
 export 'calendar/google_calendar_connection.dart';
-export 'chat/chat_message.dart';
+export 'chat_message.dart';
+export 'chat_session.dart';
 export 'greetings/greeting.dart';
 export 'tasks/task.dart';
+export 'user_memory.dart';
 export 'user_profile.dart';
 
 class Protocol extends _i1.SerializationManagerServer {
@@ -118,6 +123,12 @@ class Protocol extends _i1.SerializationManagerServer {
           columnDefault: 'nextval(\'chat_message_id_seq\'::regclass)',
         ),
         _i2.ColumnDefinition(
+          name: 'sessionId',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _i2.ColumnDefinition(
           name: 'content',
           columnType: _i2.ColumnType.text,
           isNullable: false,
@@ -146,6 +157,62 @@ class Protocol extends _i1.SerializationManagerServer {
       indexes: [
         _i2.IndexDefinition(
           indexName: 'chat_message_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
+      name: 'chat_session',
+      dartName: 'ChatSession',
+      schema: 'public',
+      module: 'butler',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'chat_session_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'userId',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'title',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _i2.ColumnDefinition(
+          name: 'updatedAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'chat_session_pkey',
           tableSpace: null,
           elements: [
             _i2.IndexElementDefinition(
@@ -312,6 +379,56 @@ class Protocol extends _i1.SerializationManagerServer {
       managed: true,
     ),
     _i2.TableDefinition(
+      name: 'user_memory',
+      dartName: 'UserMemory',
+      schema: 'public',
+      module: 'butler',
+      columns: [
+        _i2.ColumnDefinition(
+          name: 'id',
+          columnType: _i2.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'nextval(\'user_memory_id_seq\'::regclass)',
+        ),
+        _i2.ColumnDefinition(
+          name: 'userId',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'content',
+          columnType: _i2.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _i2.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _i2.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _i2.IndexDefinition(
+          indexName: 'user_memory_pkey',
+          tableSpace: null,
+          elements: [
+            _i2.IndexElementDefinition(
+              type: _i2.IndexElementDefinitionType.column,
+              definition: 'id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: true,
+        ),
+      ],
+      managed: true,
+    ),
+    _i2.TableDefinition(
       name: 'user_profile',
       dartName: 'UserProfile',
       schema: 'public',
@@ -439,14 +556,20 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i8.ChatMessage) {
       return _i8.ChatMessage.fromJson(data) as T;
     }
-    if (t == _i9.Greeting) {
-      return _i9.Greeting.fromJson(data) as T;
+    if (t == _i9.ChatSession) {
+      return _i9.ChatSession.fromJson(data) as T;
     }
-    if (t == _i10.Task) {
-      return _i10.Task.fromJson(data) as T;
+    if (t == _i10.Greeting) {
+      return _i10.Greeting.fromJson(data) as T;
     }
-    if (t == _i11.UserProfile) {
-      return _i11.UserProfile.fromJson(data) as T;
+    if (t == _i11.Task) {
+      return _i11.Task.fromJson(data) as T;
+    }
+    if (t == _i12.UserMemory) {
+      return _i12.UserMemory.fromJson(data) as T;
+    }
+    if (t == _i13.UserProfile) {
+      return _i13.UserProfile.fromJson(data) as T;
     }
     if (t == _i1.getType<_i6.CalendarEvent?>()) {
       return (data != null ? _i6.CalendarEvent.fromJson(data) : null) as T;
@@ -458,18 +581,24 @@ class Protocol extends _i1.SerializationManagerServer {
     if (t == _i1.getType<_i8.ChatMessage?>()) {
       return (data != null ? _i8.ChatMessage.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i9.Greeting?>()) {
-      return (data != null ? _i9.Greeting.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i9.ChatSession?>()) {
+      return (data != null ? _i9.ChatSession.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i10.Task?>()) {
-      return (data != null ? _i10.Task.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i10.Greeting?>()) {
+      return (data != null ? _i10.Greeting.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i11.UserProfile?>()) {
-      return (data != null ? _i11.UserProfile.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i11.Task?>()) {
+      return (data != null ? _i11.Task.fromJson(data) : null) as T;
     }
-    if (t == List<_i12.CalendarEvent>) {
+    if (t == _i1.getType<_i12.UserMemory?>()) {
+      return (data != null ? _i12.UserMemory.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i13.UserProfile?>()) {
+      return (data != null ? _i13.UserProfile.fromJson(data) : null) as T;
+    }
+    if (t == List<_i14.CalendarEvent>) {
       return (data as List)
-              .map((e) => deserialize<_i12.CalendarEvent>(e))
+              .map((e) => deserialize<_i14.CalendarEvent>(e))
               .toList()
           as T;
     }
@@ -479,14 +608,20 @@ class Protocol extends _i1.SerializationManagerServer {
           )
           as T;
     }
-    if (t == List<_i13.ChatMessage>) {
+    if (t == List<_i15.ChatSession>) {
       return (data as List)
-              .map((e) => deserialize<_i13.ChatMessage>(e))
+              .map((e) => deserialize<_i15.ChatSession>(e))
               .toList()
           as T;
     }
-    if (t == List<_i14.Task>) {
-      return (data as List).map((e) => deserialize<_i14.Task>(e)).toList() as T;
+    if (t == List<_i16.ChatMessage>) {
+      return (data as List)
+              .map((e) => deserialize<_i16.ChatMessage>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_i17.Task>) {
+      return (data as List).map((e) => deserialize<_i17.Task>(e)).toList() as T;
     }
     try {
       return _i3.Protocol().deserialize<T>(data, t);
@@ -508,9 +643,11 @@ class Protocol extends _i1.SerializationManagerServer {
       _i6.CalendarEvent => 'CalendarEvent',
       _i7.GoogleCalendarConnection => 'GoogleCalendarConnection',
       _i8.ChatMessage => 'ChatMessage',
-      _i9.Greeting => 'Greeting',
-      _i10.Task => 'Task',
-      _i11.UserProfile => 'UserProfile',
+      _i9.ChatSession => 'ChatSession',
+      _i10.Greeting => 'Greeting',
+      _i11.Task => 'Task',
+      _i12.UserMemory => 'UserMemory',
+      _i13.UserProfile => 'UserProfile',
       _ => null,
     };
   }
@@ -531,11 +668,15 @@ class Protocol extends _i1.SerializationManagerServer {
         return 'GoogleCalendarConnection';
       case _i8.ChatMessage():
         return 'ChatMessage';
-      case _i9.Greeting():
+      case _i9.ChatSession():
+        return 'ChatSession';
+      case _i10.Greeting():
         return 'Greeting';
-      case _i10.Task():
+      case _i11.Task():
         return 'Task';
-      case _i11.UserProfile():
+      case _i12.UserMemory():
+        return 'UserMemory';
+      case _i13.UserProfile():
         return 'UserProfile';
     }
     className = _i2.Protocol().getClassNameForObject(data);
@@ -572,14 +713,20 @@ class Protocol extends _i1.SerializationManagerServer {
     if (dataClassName == 'ChatMessage') {
       return deserialize<_i8.ChatMessage>(data['data']);
     }
+    if (dataClassName == 'ChatSession') {
+      return deserialize<_i9.ChatSession>(data['data']);
+    }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i9.Greeting>(data['data']);
+      return deserialize<_i10.Greeting>(data['data']);
     }
     if (dataClassName == 'Task') {
-      return deserialize<_i10.Task>(data['data']);
+      return deserialize<_i11.Task>(data['data']);
+    }
+    if (dataClassName == 'UserMemory') {
+      return deserialize<_i12.UserMemory>(data['data']);
     }
     if (dataClassName == 'UserProfile') {
-      return deserialize<_i11.UserProfile>(data['data']);
+      return deserialize<_i13.UserProfile>(data['data']);
     }
     if (dataClassName.startsWith('serverpod.')) {
       data['className'] = dataClassName.substring(10);
@@ -633,10 +780,14 @@ class Protocol extends _i1.SerializationManagerServer {
         return _i7.GoogleCalendarConnection.t;
       case _i8.ChatMessage:
         return _i8.ChatMessage.t;
-      case _i10.Task:
-        return _i10.Task.t;
-      case _i11.UserProfile:
-        return _i11.UserProfile.t;
+      case _i9.ChatSession:
+        return _i9.ChatSession.t;
+      case _i11.Task:
+        return _i11.Task.t;
+      case _i12.UserMemory:
+        return _i12.UserMemory.t;
+      case _i13.UserProfile:
+        return _i13.UserProfile.t;
     }
     return null;
   }

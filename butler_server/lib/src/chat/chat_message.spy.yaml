@@ -1,8 +1,0 @@
-class: ChatMessage
-table: chat_message
-fields:
-  content: String
-  isUser: bool
-  createdAt: DateTime
-  userId: String
-

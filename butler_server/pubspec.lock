@@ -258,7 +258,7 @@ packages:
     source: hosted
     version: "6.0.0"
   freezed_annotation:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: freezed_annotation
       sha256: "7294967ff0a6d98638e7acb774aac3af2550777accd8149c90af5b014e6d44d8"
@@ -457,6 +457,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.2.2"
+  langchain:
+    dependency: "direct main"
+    description:
+      name: langchain
+      sha256: "85ecefa1537f9718dab109d437a7421bf084bb0b1c558ed38091127855c97725"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.9"
+  langchain_core:
+    dependency: transitive
+    description:
+      name: langchain_core
+      sha256: "4499c01dcf49bb046376661ab447d660c4e36671d52e9cabc8c7225d373643d9"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.9"
+  langchain_pinecone:
+    dependency: "direct main"
+    description:
+      name: langchain_pinecone
+      sha256: "9cad8423f959f84db64e932c218425a28beb1ab2d86050fd9aaa9447c2baaa92"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.1+2"
   lints:
     dependency: "direct dev"
     description:
@@ -601,6 +625,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  pinecone:
+    dependency: transitive
+    description:
+      name: pinecone
+      sha256: a550434ea1bc0d9e0762c0dbf40b864837326f35230126d3d1e0780961d71e54
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.7.2"
   pointycastle:
     dependency: transitive
     description:

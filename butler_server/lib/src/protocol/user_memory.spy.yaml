@@ -1,0 +1,7 @@
+class: UserMemory
+table: user_memory
+managedMigration: true
+fields:
+  userId: String
+  content: String
+  createdAt: DateTime

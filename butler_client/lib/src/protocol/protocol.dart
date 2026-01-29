@@ -13,23 +13,29 @@
 import 'package:serverpod_client/serverpod_client.dart' as _i1;
 import 'calendar/calendar_event.dart' as _i2;
 import 'calendar/google_calendar_connection.dart' as _i3;
-import 'chat/chat_message.dart' as _i4;
-import 'greetings/greeting.dart' as _i5;
-import 'tasks/task.dart' as _i6;
-import 'user_profile.dart' as _i7;
-import 'package:butler_client/src/protocol/calendar/calendar_event.dart' as _i8;
-import 'package:butler_client/src/protocol/chat/chat_message.dart' as _i9;
-import 'package:butler_client/src/protocol/tasks/task.dart' as _i10;
+import 'chat_message.dart' as _i4;
+import 'chat_session.dart' as _i5;
+import 'greetings/greeting.dart' as _i6;
+import 'tasks/task.dart' as _i7;
+import 'user_memory.dart' as _i8;
+import 'user_profile.dart' as _i9;
+import 'package:butler_client/src/protocol/calendar/calendar_event.dart'
+    as _i10;
+import 'package:butler_client/src/protocol/chat_session.dart' as _i11;
+import 'package:butler_client/src/protocol/chat_message.dart' as _i12;
+import 'package:butler_client/src/protocol/tasks/task.dart' as _i13;
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
-    as _i11;
-import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i12;
+    as _i14;
+import 'package:serverpod_auth_client/serverpod_auth_client.dart' as _i15;
 import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
-    as _i13;
+    as _i16;
 export 'calendar/calendar_event.dart';
 export 'calendar/google_calendar_connection.dart';
-export 'chat/chat_message.dart';
+export 'chat_message.dart';
+export 'chat_session.dart';
 export 'greetings/greeting.dart';
 export 'tasks/task.dart';
+export 'user_memory.dart';
 export 'user_profile.dart';
 export 'client.dart';
 
@@ -76,14 +82,20 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i4.ChatMessage) {
       return _i4.ChatMessage.fromJson(data) as T;
     }
-    if (t == _i5.Greeting) {
-      return _i5.Greeting.fromJson(data) as T;
+    if (t == _i5.ChatSession) {
+      return _i5.ChatSession.fromJson(data) as T;
     }
-    if (t == _i6.Task) {
-      return _i6.Task.fromJson(data) as T;
+    if (t == _i6.Greeting) {
+      return _i6.Greeting.fromJson(data) as T;
     }
-    if (t == _i7.UserProfile) {
-      return _i7.UserProfile.fromJson(data) as T;
+    if (t == _i7.Task) {
+      return _i7.Task.fromJson(data) as T;
+    }
+    if (t == _i8.UserMemory) {
+      return _i8.UserMemory.fromJson(data) as T;
+    }
+    if (t == _i9.UserProfile) {
+      return _i9.UserProfile.fromJson(data) as T;
     }
     if (t == _i1.getType<_i2.CalendarEvent?>()) {
       return (data != null ? _i2.CalendarEvent.fromJson(data) : null) as T;
@@ -95,18 +107,24 @@ class Protocol extends _i1.SerializationManager {
     if (t == _i1.getType<_i4.ChatMessage?>()) {
       return (data != null ? _i4.ChatMessage.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i5.Greeting?>()) {
-      return (data != null ? _i5.Greeting.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i5.ChatSession?>()) {
+      return (data != null ? _i5.ChatSession.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i6.Task?>()) {
-      return (data != null ? _i6.Task.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i6.Greeting?>()) {
+      return (data != null ? _i6.Greeting.fromJson(data) : null) as T;
     }
-    if (t == _i1.getType<_i7.UserProfile?>()) {
-      return (data != null ? _i7.UserProfile.fromJson(data) : null) as T;
+    if (t == _i1.getType<_i7.Task?>()) {
+      return (data != null ? _i7.Task.fromJson(data) : null) as T;
     }
-    if (t == List<_i8.CalendarEvent>) {
+    if (t == _i1.getType<_i8.UserMemory?>()) {
+      return (data != null ? _i8.UserMemory.fromJson(data) : null) as T;
+    }
+    if (t == _i1.getType<_i9.UserProfile?>()) {
+      return (data != null ? _i9.UserProfile.fromJson(data) : null) as T;
+    }
+    if (t == List<_i10.CalendarEvent>) {
       return (data as List)
-              .map((e) => deserialize<_i8.CalendarEvent>(e))
+              .map((e) => deserialize<_i10.CalendarEvent>(e))
               .toList()
           as T;
     }
@@ -116,21 +134,29 @@ class Protocol extends _i1.SerializationManager {
           )
           as T;
     }
-    if (t == List<_i9.ChatMessage>) {
-      return (data as List).map((e) => deserialize<_i9.ChatMessage>(e)).toList()
+    if (t == List<_i11.ChatSession>) {
+      return (data as List)
+              .map((e) => deserialize<_i11.ChatSession>(e))
+              .toList()
           as T;
     }
-    if (t == List<_i10.Task>) {
-      return (data as List).map((e) => deserialize<_i10.Task>(e)).toList() as T;
+    if (t == List<_i12.ChatMessage>) {
+      return (data as List)
+              .map((e) => deserialize<_i12.ChatMessage>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_i13.Task>) {
+      return (data as List).map((e) => deserialize<_i13.Task>(e)).toList() as T;
     }
     try {
-      return _i11.Protocol().deserialize<T>(data, t);
+      return _i14.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     try {
-      return _i12.Protocol().deserialize<T>(data, t);
+      return _i15.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     try {
-      return _i13.Protocol().deserialize<T>(data, t);
+      return _i16.Protocol().deserialize<T>(data, t);
     } on _i1.DeserializationTypeNotFoundException catch (_) {}
     return super.deserialize<T>(data, t);
   }
@@ -140,9 +166,11 @@ class Protocol extends _i1.SerializationManager {
       _i2.CalendarEvent => 'CalendarEvent',
       _i3.GoogleCalendarConnection => 'GoogleCalendarConnection',
       _i4.ChatMessage => 'ChatMessage',
-      _i5.Greeting => 'Greeting',
-      _i6.Task => 'Task',
-      _i7.UserProfile => 'UserProfile',
+      _i5.ChatSession => 'ChatSession',
+      _i6.Greeting => 'Greeting',
+      _i7.Task => 'Task',
+      _i8.UserMemory => 'UserMemory',
+      _i9.UserProfile => 'UserProfile',
       _ => null,
     };
   }
@@ -163,22 +191,26 @@ class Protocol extends _i1.SerializationManager {
         return 'GoogleCalendarConnection';
       case _i4.ChatMessage():
         return 'ChatMessage';
-      case _i5.Greeting():
+      case _i5.ChatSession():
+        return 'ChatSession';
+      case _i6.Greeting():
         return 'Greeting';
-      case _i6.Task():
+      case _i7.Task():
         return 'Task';
-      case _i7.UserProfile():
+      case _i8.UserMemory():
+        return 'UserMemory';
+      case _i9.UserProfile():
         return 'UserProfile';
     }
-    className = _i11.Protocol().getClassNameForObject(data);
+    className = _i14.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_idp.$className';
     }
-    className = _i12.Protocol().getClassNameForObject(data);
+    className = _i15.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth.$className';
     }
-    className = _i13.Protocol().getClassNameForObject(data);
+    className = _i16.Protocol().getClassNameForObject(data);
     if (className != null) {
       return 'serverpod_auth_core.$className';
     }
@@ -200,26 +232,32 @@ class Protocol extends _i1.SerializationManager {
     if (dataClassName == 'ChatMessage') {
       return deserialize<_i4.ChatMessage>(data['data']);
     }
+    if (dataClassName == 'ChatSession') {
+      return deserialize<_i5.ChatSession>(data['data']);
+    }
     if (dataClassName == 'Greeting') {
-      return deserialize<_i5.Greeting>(data['data']);
+      return deserialize<_i6.Greeting>(data['data']);
     }
     if (dataClassName == 'Task') {
-      return deserialize<_i6.Task>(data['data']);
+      return deserialize<_i7.Task>(data['data']);
+    }
+    if (dataClassName == 'UserMemory') {
+      return deserialize<_i8.UserMemory>(data['data']);
     }
     if (dataClassName == 'UserProfile') {
-      return deserialize<_i7.UserProfile>(data['data']);
+      return deserialize<_i9.UserProfile>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       data['className'] = dataClassName.substring(19);
-      return _i11.Protocol().deserializeByClassName(data);
+      return _i14.Protocol().deserializeByClassName(data);
     }
     if (dataClassName.startsWith('serverpod_auth.')) {
       data['className'] = dataClassName.substring(15);
-      return _i12.Protocol().deserializeByClassName(data);
+      return _i15.Protocol().deserializeByClassName(data);
     }
     if (dataClassName.startsWith('serverpod_auth_core.')) {
       data['className'] = dataClassName.substring(20);
-      return _i13.Protocol().deserializeByClassName(data);
+      return _i16.Protocol().deserializeByClassName(data);
     }
     return super.deserializeByClassName(data);
   }
@@ -234,13 +272,13 @@ class Protocol extends _i1.SerializationManager {
       return null;
     }
     try {
-      return _i11.Protocol().mapRecordToJson(record);
+      return _i14.Protocol().mapRecordToJson(record);
     } catch (_) {}
     try {
-      return _i12.Protocol().mapRecordToJson(record);
+      return _i15.Protocol().mapRecordToJson(record);
     } catch (_) {}
     try {
-      return _i13.Protocol().mapRecordToJson(record);
+      return _i16.Protocol().mapRecordToJson(record);
     } catch (_) {}
     throw Exception('Unsupported record type ${record.runtimeType}');
   }

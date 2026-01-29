@@ -1,0 +1,8 @@
+class: ChatMessage
+table: chat_message
+fields:
+  sessionId: int
+  content: String
+  isUser: bool
+  createdAt: DateTime
+  userId: String

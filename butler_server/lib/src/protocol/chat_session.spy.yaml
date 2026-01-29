@@ -1,0 +1,7 @@
+class: ChatSession
+table: chat_session
+fields:
+  userId: String
+  title: String
+  createdAt: DateTime
+  updatedAt: DateTime
