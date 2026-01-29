@@ -83,10 +83,6 @@ class MemoryService {
 
     // 2. Query Pinecone
     final url = Uri.parse('$_targetUrl/query');
-    // Using print since we don't have session here easily unless passed,
-    // but wait, searchMemories signature in previous turn didn't have session.
-    // I will add print for now or check if I can add session.
-    print('Attempting Pinecone Query to: $url');
 
     try {
       final response = await http.post(
@@ -119,12 +115,9 @@ class MemoryService {
             .where((s) => s.isNotEmpty)
             .toList();
       } else {
-        // Log but don't crash chat flow
-        print('Pinecone Query Failed: ${response.statusCode} ${response.body}');
         return [];
       }
     } catch (e) {
-      print('Pinecone search error: $e');
       return [];
     }
   }
