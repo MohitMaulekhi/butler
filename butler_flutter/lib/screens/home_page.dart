@@ -3,7 +3,10 @@ import 'package:butler_flutter/screens/chat_page.dart';
 import 'package:butler_flutter/screens/news_page.dart';
 import 'package:butler_flutter/screens/profile_page.dart';
 import 'package:butler_flutter/screens/tasks_page.dart';
+import 'package:butler_client/butler_client.dart';
+import 'package:butler_flutter/main.dart';
 import 'package:flutter/material.dart';
+import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,22 +22,28 @@ class _HomePageState extends State<HomePage> {
   final _chatKey = GlobalKey<ChatPageState>();
 
   late List<Widget> _pages;
+  List<ChatSession> _sessions = [];
 
   @override
   void initState() {
     super.initState();
     _pages = [
-      ChatPage(key: _chatKey),
+      ChatPage(
+        key: _chatKey,
+        sessions: _sessions,
+        onSessionsUpdated: _loadSessions,
+      ),
       TasksPage(key: _tasksKey),
       CalendarPage(key: _calendarKey),
       const NewsPage(),
       const ProfilePage(),
     ];
+    _loadSessions();
   }
 
   void _onItemTapped(int index) {
     if (index == 0 && _currentIndex == 0) {
-      // If already on chat, reset it
+      // If already on chat, reset it (New Chat behavior from Sidebar button)
       _chatKey.currentState?.reset();
     }
 
@@ -47,6 +56,45 @@ class _HomePageState extends State<HomePage> {
     } else if (index == 2 && _calendarKey.currentState != null) {
       _calendarKey.currentState?.loadEvents();
     }
+  }
+
+  Future<void> _loadSessions() async {
+    final sessionManager = client.authSessionManager;
+    if (sessionManager.authInfo == null) return;
+
+    try {
+      final sessions = await client.chat.getSessions();
+      if (mounted) {
+        setState(() {
+          _sessions = sessions;
+          // Re-build pages to update ChatPage params if needed,
+          // but since we pass _sessions by reference (it's a list),
+          // we might need to recreate the page or depend on ChatPage
+          // using didUpdateWidget (which we implemented).
+          // However, we passed the list instance. If we replaced the list instance
+          // we need to update the widget in _pages or ensure ChatPage.build reads new widget.sessions.
+          // Since _pages is initialized once, updating _sessions here WON'T update
+          // the ChatPage instance inside _pages array automatically unless we update the array.
+          _pages[0] = ChatPage(
+            key: _chatKey,
+            sessions: _sessions,
+            onSessionsUpdated: _loadSessions,
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load sessions: $e');
+    }
+  }
+
+  void _onSessionTapped(ChatSession session) {
+    setState(() {
+      _currentIndex = 0;
+    });
+    // Add small delay to allow widget to build if switching tabs
+    Future.microtask(() {
+      _chatKey.currentState?.loadSession(session.id!);
+    });
   }
 
   String _getTitle(int index) {
@@ -248,6 +296,51 @@ class _HomePageState extends State<HomePage> {
                           Icons.settings,
                           'Settings',
                         ),
+                        const SizedBox(height: 32),
+                        // HISTORY SECTION
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          child: Text(
+                            'HISTORY',
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.4,
+                              ),
+                              fontSize: 11,
+                              letterSpacing: 1.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        ..._sessions.map((session) {
+                          final title = session.title;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 1),
+                            child: InkWell(
+                              onTap: () => _onSessionTapped(session),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.7),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ),

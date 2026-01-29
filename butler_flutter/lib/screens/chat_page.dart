@@ -5,15 +5,22 @@ import 'package:butler_flutter/screens/components/chat_sidebar.dart';
 import 'package:butler_flutter/screens/components/voice_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  final List<protocol.ChatSession> sessions;
+  final VoidCallback? onSessionsUpdated;
+
+  const ChatPage({
+    super.key,
+    this.sessions = const [],
+    this.onSessionsUpdated,
+  });
 
   @override
   State<ChatPage> createState() => ChatPageState();
@@ -30,39 +37,20 @@ class ChatPageState extends State<ChatPage> {
   String _userName = 'User';
   int _selectedAvatarIndex = 0;
 
-  // Session State
-  List<protocol.ChatSession> _sessions = [];
+  // Session State - Removed local _sessions, using widget.sessions
   int? _currentSessionId;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   void initState() {
     super.initState();
-    _loadSessions();
+    // Sessions loaded by parent
     _loadPreferences();
     _loadUserName();
     _loadAvatarPreference();
   }
 
-  Future<void> _loadSessions() async {
-    // Use client.authSessionManager which is initialized in main.dart
-    final sessionManager = client.authSessionManager;
-    if (!sessionManager.isSignedIn) return;
-
-    try {
-      final sessions = await client.chat.getSessions();
-      if (mounted) {
-        setState(() {
-          _sessions = sessions;
-          // Auto-select most recent if available and no current selection
-          if (_currentSessionId == null && _sessions.isNotEmpty) {
-            _selectSession(_sessions.first);
-          }
-        });
-      }
-    } catch (e) {
-      debugPrint('Failed to load sessions: $e');
-    }
-  }
+  // _loadSessions removed, using widget.sessions
 
   void _selectSession(protocol.ChatSession session) {
     if (_currentSessionId == session.id) return;
@@ -71,8 +59,9 @@ class ChatPageState extends State<ChatPage> {
       _messages.clear(); // Clear UI immediately
     });
     _loadHistory(session.id);
-    // On mobile, close drawer
-    if (MediaQuery.of(context).size.width < 900) {
+    // On mobile, close drawer if open
+    if (MediaQuery.of(context).size.width < 900 &&
+        (_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
       Navigator.pop(context); // Close drawer
     }
   }
@@ -82,8 +71,11 @@ class ChatPageState extends State<ChatPage> {
       _currentSessionId = null;
       _messages.clear();
     });
-    // On mobile, close drawer
-    if (MediaQuery.of(context).size.width < 900) {
+    widget.onSessionsUpdated?.call();
+
+    // On mobile, close drawer if open
+    if (MediaQuery.of(context).size.width < 900 &&
+        (_scaffoldKey.currentState?.isDrawerOpen ?? false)) {
       Navigator.pop(context); // Close drawer
     }
   }
@@ -91,7 +83,7 @@ class ChatPageState extends State<ChatPage> {
   Future<void> _deleteSession(protocol.ChatSession session) async {
     try {
       await client.chat.deleteSession(session.id!);
-      await _loadSessions(); // Reload list
+      widget.onSessionsUpdated?.call();
       if (_currentSessionId == session.id) {
         _createNewChat(); // Reset if deleted active
       }
@@ -137,12 +129,29 @@ class ChatPageState extends State<ChatPage> {
     }
   }
 
+  Future<void> loadSession(int sessionId) async {
+    // Find session object if needed, but for now just load history
+    final session = widget.sessions.where((s) => s.id == sessionId).firstOrNull;
+    if (session != null) {
+      _selectSession(session);
+    } else {
+      // Just load history if not in list (edge case)
+      setState(() {
+        _currentSessionId = sessionId;
+        _messages.clear();
+      });
+      await _loadHistory(sessionId);
+    }
+  }
+
+  // Public method to reset/clear chat, mapped to New Chat now
+  Future<void> reset() => _createNewChat();
   Future<void> _loadHistory(int? sessionId) async {
     if (sessionId == null) return;
 
     // Add auth check
     final sessionManager = client.authSessionManager;
-    if (!sessionManager.isSignedIn) return;
+    if (sessionManager.authInfo == null) return;
 
     try {
       setState(() {
@@ -177,9 +186,6 @@ class ChatPageState extends State<ChatPage> {
       }
     }
   }
-
-  // Public method to reset/clear chat, mapped to New Chat now
-  Future<void> reset() => _createNewChat();
 
   void _openVoiceModal() async {
     final isWide = MediaQuery.of(context).size.width >= 900;
@@ -238,8 +244,9 @@ class ChatPageState extends State<ChatPage> {
           final session = await client.chat.createSession(title);
           setState(() {
             _currentSessionId = session.id;
-            _sessions.insert(0, session); // Add to local list
+            // widget.sessions.insert(0, session); // Parent handles list update
           });
+          widget.onSessionsUpdated?.call();
         } catch (e) {
           debugPrint('Failed to create session: $e');
         }
@@ -281,7 +288,7 @@ class ChatPageState extends State<ChatPage> {
       );
 
       // Reload sessions to update updated_at or if title changes (optional)
-      _loadSessions();
+      widget.onSessionsUpdated?.call();
 
       if (mounted) {
         setState(() {
@@ -375,7 +382,7 @@ class ChatPageState extends State<ChatPage> {
     final isWide = MediaQuery.of(context).size.width >= 900;
 
     final sidebar = ChatSidebar(
-      sessions: _sessions,
+      sessions: widget.sessions,
       selectedSessionId: _currentSessionId,
       onSessionSelected: _selectSession,
       onNewChat: _createNewChat,
@@ -383,6 +390,7 @@ class ChatPageState extends State<ChatPage> {
     );
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Colors.transparent,
       drawer: !isWide
           ? Drawer(
@@ -392,7 +400,7 @@ class ChatPageState extends State<ChatPage> {
       body: SafeArea(
         child: Row(
           children: [
-            if (isWide) sidebar,
+            // if (isWide) sidebar, // Hidden on Desktop now as per requirements
             Expanded(
               child: Column(
                 children: [
@@ -693,12 +701,11 @@ class ChatPageState extends State<ChatPage> {
                         ),
                         child: Row(
                           children: [
-                            // Drawer Trigger on Mobile
                             if (!isWide)
                               IconButton(
                                 icon: const Icon(Icons.menu),
                                 onPressed: () {
-                                  Scaffold.of(context).openDrawer();
+                                  _scaffoldKey.currentState?.openDrawer();
                                 },
                               ),
                             Expanded(
